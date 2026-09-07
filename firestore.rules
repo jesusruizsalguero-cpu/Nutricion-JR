@@ -58,6 +58,11 @@ service cloud.firestore {
         }
       }
 
+      // Planes de dieta generados: usuarios/{uid}/planes/{planId}
+      match /planes/{planId} {
+        allow read, write: if esDueno(uid);
+      }
+
       // Mediciones corporales
       match /progreso/{registroId} {
         allow read, write: if esDueno(uid);

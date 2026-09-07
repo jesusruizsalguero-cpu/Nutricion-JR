@@ -1,28 +1,102 @@
 /**
- * Cálculos nutricionales: metabolismo basal, gasto energético y reparto de macros.
+ * Cálculos nutricionales: metabolismo basal, gasto energético y reparto de
+ * macronutrientes a partir del perfil completo (edad, peso, altura, deporte,
+ * patologías y objetivo).
+ *
  * Todas las fórmulas usan kg, cm y años.
  */
 
+import { ajustesDe, DEPORTES, kcalDeEntrenamiento } from '@/utils/salud'
+
 export const NIVELES_ACTIVIDAD = {
-  sedentario: { etiqueta: 'Sedentario (poco o nada de ejercicio)', factor: 1.2 },
-  ligero: { etiqueta: 'Ligero (1-3 días/semana)', factor: 1.375 },
-  moderado: { etiqueta: 'Moderado (3-5 días/semana)', factor: 1.55 },
-  intenso: { etiqueta: 'Intenso (6-7 días/semana)', factor: 1.725 },
-  atleta: { etiqueta: 'Atleta (2 sesiones al día)', factor: 1.9 },
+  sedentario: { etiqueta: 'Sedentario (trabajo sentado, sin ejercicio)', factor: 1.2 },
+  ligero: { etiqueta: 'Ligero (de pie a ratos o paseos diarios)', factor: 1.375 },
+  moderado: { etiqueta: 'Moderado (trabajo activo)', factor: 1.5 },
+  intenso: { etiqueta: 'Intenso (trabajo físico exigente)', factor: 1.65 },
 }
 
+/**
+ * Objetivos. `ajuste` es el porcentaje sobre el gasto total; `proteinaPorKg`
+ * y `grasaPct` definen el reparto de macros antes de los ajustes por deporte
+ * y patologías.
+ */
 export const OBJETIVOS = {
-  perder: { etiqueta: 'Perder grasa', ajuste: -0.2, proteinaPorKg: 2.0 },
-  mantener: { etiqueta: 'Mantener peso', ajuste: 0, proteinaPorKg: 1.6 },
-  ganar: { etiqueta: 'Ganar músculo', ajuste: 0.15, proteinaPorKg: 1.8 },
+  perder: {
+    etiqueta: 'Perder grasa',
+    descripcion: 'Déficit moderado manteniendo la masa muscular.',
+    ajuste: -0.2,
+    proteinaPorKg: 2.0,
+    grasaPct: 0.3,
+  },
+  ganar: {
+    etiqueta: 'Ganar masa muscular',
+    descripcion: 'Superávit contenido para crecer sin acumular grasa.',
+    ajuste: 0.12,
+    proteinaPorKg: 1.9,
+    grasaPct: 0.25,
+  },
+  fondo: {
+    etiqueta: 'Conseguir fondo físico',
+    descripcion: 'Más hidratos para sostener el volumen de entrenamiento.',
+    ajuste: 0.05,
+    proteinaPorKg: 1.5,
+    grasaPct: 0.22,
+  },
+  rendimiento: {
+    etiqueta: 'Mejorar el rendimiento deportivo',
+    descripcion: 'Energía suficiente y recuperación entre sesiones.',
+    ajuste: 0.03,
+    proteinaPorKg: 1.7,
+    grasaPct: 0.25,
+  },
+  mantener: {
+    etiqueta: 'Mantener el peso',
+    descripcion: 'Comer según tu gasto, sin déficit ni superávit.',
+    ajuste: 0,
+    proteinaPorKg: 1.6,
+    grasaPct: 0.28,
+  },
+  salud: {
+    etiqueta: 'Comer mejor y cuidar la salud',
+    descripcion: 'Reparto equilibrado, sin forzar el peso en ninguna dirección.',
+    ajuste: 0,
+    proteinaPorKg: 1.4,
+    grasaPct: 0.3,
+  },
 }
 
+/** Momentos del día. `reparto` se define en ESQUEMAS_COMIDAS según cuántas haya. */
 export const COMIDAS = [
-  { id: 'desayuno', etiqueta: 'Desayuno', icono: '🌅', reparto: 0.25 },
-  { id: 'almuerzo', etiqueta: 'Almuerzo', icono: '☀️', reparto: 0.35 },
-  { id: 'cena', etiqueta: 'Cena', icono: '🌙', reparto: 0.3 },
-  { id: 'snacks', etiqueta: 'Snacks', icono: '🍎', reparto: 0.1 },
+  { id: 'desayuno', etiqueta: 'Desayuno', icono: '🌅' },
+  { id: 'media_manana', etiqueta: 'Media mañana', icono: '☕' },
+  { id: 'almuerzo', etiqueta: 'Comida', icono: '☀️' },
+  { id: 'merienda', etiqueta: 'Merienda', icono: '🍎' },
+  { id: 'cena', etiqueta: 'Cena', icono: '🌙' },
 ]
+
+export const COMIDAS_POR_ID = Object.fromEntries(COMIDAS.map((c) => [c.id, c]))
+
+/** Reparto de las calorías del día según el número de comidas elegido. */
+export const ESQUEMAS_COMIDAS = {
+  3: [
+    { id: 'desayuno', reparto: 0.3 },
+    { id: 'almuerzo', reparto: 0.4 },
+    { id: 'cena', reparto: 0.3 },
+  ],
+  4: [
+    { id: 'desayuno', reparto: 0.25 },
+    { id: 'almuerzo', reparto: 0.35 },
+    { id: 'merienda', reparto: 0.12 },
+    { id: 'cena', reparto: 0.28 },
+  ],
+  5: [
+    { id: 'desayuno', reparto: 0.22 },
+    { id: 'media_manana', reparto: 0.1 },
+    { id: 'almuerzo', reparto: 0.33 },
+    { id: 'merienda', reparto: 0.1 },
+    { id: 'cena', reparto: 0.25 },
+  ],
+}
 
 /** Kilocalorías por gramo de cada macronutriente. */
 export const KCAL_POR_GRAMO = { proteinas: 4, carbohidratos: 4, grasas: 9 }
@@ -37,12 +111,6 @@ export function calcularTMB({ sexo, peso, altura, edad }) {
   return Math.round(sexo === 'hombre' ? base + 5 : base - 161)
 }
 
-/** Gasto energético total = TMB x factor de actividad. */
-export function calcularGastoTotal(tmb, nivelActividad) {
-  const nivel = NIVELES_ACTIVIDAD[nivelActividad] ?? NIVELES_ACTIVIDAD.sedentario
-  return Math.round(tmb * nivel.factor)
-}
-
 /** Edad en años a partir de una fecha de nacimiento (ISO o Date). */
 export function calcularEdad(fechaNacimiento) {
   if (!fechaNacimiento) return 0
@@ -55,29 +123,120 @@ export function calcularEdad(fechaNacimiento) {
 }
 
 /**
- * Metas diarias a partir del perfil.
- * Proteína según objetivo (g/kg), grasa al 25% de las calorías, resto carbohidratos.
- * @returns {{calorias: number, proteinas: number, carbohidratos: number, grasas: number, agua: number, tmb: number, gastoTotal: number}}
+ * Metas diarias a partir del perfil completo.
+ *
+ * Orden del cálculo:
+ *   1. TMB (Mifflin-St Jeor) x factor de actividad de la vida diaria.
+ *   2. + gasto real de los entrenamientos, prorrateado por día.
+ *   3. + ajuste del objetivo y de las patologías.
+ *   4. Suelo de seguridad: nunca por debajo del metabolismo basal.
+ *   5. Reparto: proteína por kg, grasa como porcentaje, hidratos el resto.
  */
 export function calcularMetas(perfil) {
-  const { sexo, peso, altura, fechaNacimiento, nivelActividad, objetivo } = perfil ?? {}
+  const {
+    sexo,
+    peso,
+    altura,
+    fechaNacimiento,
+    nivelActividad,
+    objetivo,
+    deporte = 'ninguno',
+    sesionesSemana = 0,
+    minutosSesion = 0,
+    patologias = [],
+  } = perfil ?? {}
+
   const edad = calcularEdad(fechaNacimiento)
   const tmb = calcularTMB({ sexo, peso, altura, edad })
-  const gastoTotal = calcularGastoTotal(tmb, nivelActividad)
+  const ajustes = ajustesDe(patologias)
+
+  const factor = (NIVELES_ACTIVIDAD[nivelActividad] ?? NIVELES_ACTIVIDAD.sedentario).factor
+  const kcalEntreno = kcalDeEntrenamiento({ deporte, sesionesSemana, minutosSesion, peso })
+  const gastoTotal = Math.round(tmb * factor * (1 + (ajustes.factorGasto ?? 0)) + kcalEntreno)
 
   const meta = OBJETIVOS[objetivo] ?? OBJETIVOS.mantener
-  const calorias = Math.round(gastoTotal * (1 + meta.ajuste))
+  const propuesta = Math.round(gastoTotal * (1 + meta.ajuste) + (ajustes.kcalExtra ?? 0))
 
-  const proteinas = Math.round((peso || 0) * meta.proteinaPorKg)
-  const grasas = Math.round((calorias * 0.25) / KCAL_POR_GRAMO.grasas)
-  const kcalRestantes =
-    calorias - proteinas * KCAL_POR_GRAMO.proteinas - grasas * KCAL_POR_GRAMO.grasas
-  const carbohidratos = Math.max(0, Math.round(kcalRestantes / KCAL_POR_GRAMO.carbohidratos))
+  // Nunca por debajo del metabolismo basal: un déficit mayor no es sostenible
+  // y compromete masa muscular y micronutrientes.
+  const suelo = Math.max(tmb, sexo === 'mujer' ? 1200 : 1500)
+  const calorias = Math.max(propuesta, suelo)
+  const limitadaPorSeguridad = calorias > propuesta
 
-  // Recomendación habitual: 35 ml por kg de peso corporal.
-  const agua = Math.round((peso || 0) * 35)
+  // Con obesidad, la proteína por kg de peso real se dispara: se usa el peso
+  // correspondiente a un IMC de 25 como referencia.
+  const pesoReferencia = pesoDeReferencia(peso, altura)
 
-  return { calorias, proteinas, carbohidratos, grasas, agua, tmb, gastoTotal }
+  const deporteDatos = DEPORTES[deporte] ?? DEPORTES.ninguno
+  let proteinaPorKg =
+    meta.proteinaPorKg + (deporteDatos.proteinaExtra ?? 0) + (ajustes.proteinaPorKg ?? 0)
+  if (ajustes.proteinaMaxPorKg !== undefined) {
+    proteinaPorKg = Math.min(proteinaPorKg, ajustes.proteinaMaxPorKg)
+  }
+
+  const proteinas = Math.round(pesoReferencia * proteinaPorKg)
+  const grasaPct = acotar(meta.grasaPct + (ajustes.grasaPct ?? 0), 0.2, 0.35)
+  let grasas = Math.round((calorias * grasaPct) / KCAL_POR_GRAMO.grasas)
+
+  let carbohidratos = Math.max(
+    0,
+    Math.round(
+      (calorias - proteinas * KCAL_POR_GRAMO.proteinas - grasas * KCAL_POR_GRAMO.grasas) /
+        KCAL_POR_GRAMO.carbohidratos,
+    ),
+  )
+
+  // Tope de hidratos (diabetes): lo que sobra se compensa con grasa saludable.
+  if (ajustes.carbosMaxPct !== undefined) {
+    const maximo = Math.round((calorias * ajustes.carbosMaxPct) / KCAL_POR_GRAMO.carbohidratos)
+    if (carbohidratos > maximo) {
+      const kcalSobrante = (carbohidratos - maximo) * KCAL_POR_GRAMO.carbohidratos
+      carbohidratos = maximo
+      grasas += Math.round(kcalSobrante / KCAL_POR_GRAMO.grasas)
+    }
+  }
+
+  // 35 ml por kg, más medio litro por hora de entrenamiento.
+  const horasEntrenoDia = (sesionesSemana * minutosSesion) / 60 / 7
+  const agua = Math.round((peso || 0) * 35 + horasEntrenoDia * 500)
+
+  return {
+    calorias,
+    proteinas,
+    carbohidratos,
+    grasas,
+    agua,
+    tmb,
+    gastoTotal,
+    kcalEntreno,
+    proteinaPorKg: redondear(proteinaPorKg, 2),
+    limitadaPorSeguridad,
+  }
+}
+
+/** Peso usado para calcular la proteína: el real, o el de un IMC de 25 si hay obesidad. */
+export function pesoDeReferencia(peso, alturaCm) {
+  if (!peso || !alturaCm) return peso || 0
+  const alturaM = alturaCm / 100
+  const pesoIMC25 = 25 * alturaM * alturaM
+  return peso > pesoIMC25 * 1.2 ? Math.round(pesoIMC25) : peso
+}
+
+/** Reparte las metas del día entre las comidas del esquema elegido. */
+export function repartirEnComidas(metas, numeroComidas = 4) {
+  const esquema = ESQUEMAS_COMIDAS[numeroComidas] ?? ESQUEMAS_COMIDAS[4]
+  return esquema.map(({ id, reparto }) => ({
+    id,
+    reparto,
+    etiqueta: COMIDAS_POR_ID[id].etiqueta,
+    icono: COMIDAS_POR_ID[id].icono,
+    objetivo: {
+      kcal: Math.round(metas.calorias * reparto),
+      proteinas: Math.round(metas.proteinas * reparto),
+      carbohidratos: Math.round(metas.carbohidratos * reparto),
+      grasas: Math.round(metas.grasas * reparto),
+    },
+  }))
 }
 
 /**
@@ -92,12 +251,11 @@ export function escalarPorcion(alimento, gramos) {
     carbohidratos: redondear(alimento.carbohidratos * factor, 1),
     grasas: redondear(alimento.grasas * factor, 1),
     fibra: redondear((alimento.fibra ?? 0) * factor, 1),
-    azucares: redondear((alimento.azucares ?? 0) * factor, 1),
     sodio: redondear((alimento.sodio ?? 0) * factor, 1),
   }
 }
 
-/** Suma los totales de una lista de items del diario. */
+/** Suma los totales de una lista de items (del diario o de un plan). */
 export function sumarTotales(items = []) {
   return items.reduce(
     (acc, item) => ({
@@ -105,17 +263,19 @@ export function sumarTotales(items = []) {
       proteinas: acc.proteinas + (item.proteinas || 0),
       carbohidratos: acc.carbohidratos + (item.carbohidratos || 0),
       grasas: acc.grasas + (item.grasas || 0),
+      fibra: acc.fibra + (item.fibra || 0),
+      sodio: acc.sodio + (item.sodio || 0),
     }),
-    { kcal: 0, proteinas: 0, carbohidratos: 0, grasas: 0 },
+    { kcal: 0, proteinas: 0, carbohidratos: 0, grasas: 0, fibra: 0, sodio: 0 },
   )
 }
 
-/** Agrupa los items del diario por comida (desayuno, almuerzo, …). */
+/** Agrupa items por comida (desayuno, comida, …). Lo que no encaje va a merienda. */
 export function agruparPorComida(items = []) {
   const grupos = Object.fromEntries(COMIDAS.map((c) => [c.id, []]))
   for (const item of items) {
     if (grupos[item.comida]) grupos[item.comida].push(item)
-    else grupos.snacks.push(item)
+    else grupos.merienda.push(item)
   }
   return grupos
 }
@@ -133,6 +293,10 @@ function categoriaIMC(imc) {
   if (imc < 25) return 'Peso normal'
   if (imc < 30) return 'Sobrepeso'
   return 'Obesidad'
+}
+
+function acotar(valor, minimo, maximo) {
+  return Math.min(maximo, Math.max(minimo, valor))
 }
 
 function redondear(valor, decimales = 0) {
