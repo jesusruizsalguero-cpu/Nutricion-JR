@@ -35,19 +35,19 @@ export function normalizar(texto = '') {
     .trim()
 }
 
-/** Traduce los códigos de error de Firebase Auth a mensajes en español. */
+/** Traduce los códigos de error de Firebase Auth (acceso con Google). */
 export function mensajeErrorAuth(codigo) {
   const mensajes = {
-    'auth/invalid-email': 'El correo electrónico no es válido.',
+    'auth/popup-blocked':
+      'Tu navegador ha bloqueado la ventana de Google. Permite las ventanas emergentes e inténtalo otra vez.',
     'auth/user-disabled': 'Esta cuenta ha sido deshabilitada.',
-    'auth/user-not-found': 'No existe una cuenta con ese correo.',
-    'auth/wrong-password': 'La contraseña es incorrecta.',
-    'auth/invalid-credential': 'Correo o contraseña incorrectos.',
-    'auth/email-already-in-use': 'Ya existe una cuenta con ese correo.',
-    'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.',
+    'auth/operation-not-allowed':
+      'El acceso con Google no está habilitado en el proyecto de Firebase.',
+    'auth/unauthorized-domain': 'Este dominio no está autorizado en Firebase Authentication.',
+    'auth/account-exists-with-different-credential':
+      'Ya existe una cuenta con ese correo creada por otro método.',
     'auth/too-many-requests': 'Demasiados intentos. Inténtalo de nuevo más tarde.',
     'auth/network-request-failed': 'Error de conexión. Revisa tu internet.',
-    'auth/popup-closed-by-user': 'Has cerrado la ventana antes de terminar.',
   }
-  return mensajes[codigo] ?? 'Ha ocurrido un error. Inténtalo de nuevo.'
+  return mensajes[codigo] ?? 'No se ha podido iniciar sesión. Inténtalo de nuevo.'
 }

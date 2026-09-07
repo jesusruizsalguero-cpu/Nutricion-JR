@@ -11,6 +11,13 @@ export function AuthProvider({ children }) {
   const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
+    // `auth` es null cuando falta configurar Firebase (ver src/config/firebase.js);
+    // en ese caso <AvisoConfiguracion> ya se encarga de informar al usuario.
+    if (!auth) {
+      setCargando(false)
+      return undefined
+    }
+
     return onAuthStateChanged(auth, (credencial) => {
       setUsuario(credencial)
       if (!credencial) {

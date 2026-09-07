@@ -48,7 +48,6 @@ export default function AvisoConfiguracion() {
           {`VITE_FIREBASE_API_KEY=AIza...
 VITE_FIREBASE_AUTH_DOMAIN=nutricion-jr.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=nutricion-jr
-VITE_FIREBASE_STORAGE_BUCKET=nutricion-jr.firebasestorage.app
 VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
 VITE_FIREBASE_APP_ID=1:123456789:web:abc123`}
         </pre>
