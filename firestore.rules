@@ -1,0 +1,77 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Helpers ----------
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    function esDueno(uid) {
+      return autenticado() && request.auth.uid == uid;
+    }
+
+    function numeroPositivo(valor) {
+      return valor is number && valor >= 0;
+    }
+
+    // ---------- Catálogo de alimentos ----------
+    // Lectura: cualquier usuario autenticado puede leer alimentos públicos
+    // o los que él mismo creó.
+    // Escritura: solo el creador, y no puede cambiar el campo `creadoPor`.
+    match /alimentos/{alimentoId} {
+      allow read: if autenticado()
+                  && (resource.data.publico == true
+                      || resource.data.creadoPor == request.auth.uid);
+
+      allow create: if autenticado()
+                    && request.resource.data.creadoPor == request.auth.uid
+                    && request.resource.data.nombre is string
+                    && request.resource.data.nombre.size() > 0
+                    && request.resource.data.nombre.size() <= 120
+                    && numeroPositivo(request.resource.data.kcal)
+                    && numeroPositivo(request.resource.data.proteinas)
+                    && numeroPositivo(request.resource.data.carbohidratos)
+                    && numeroPositivo(request.resource.data.grasas);
+
+      allow update: if esDueno(resource.data.creadoPor)
+                    && request.resource.data.creadoPor == resource.data.creadoPor;
+
+      allow delete: if esDueno(resource.data.creadoPor);
+    }
+
+    // ---------- Datos privados del usuario ----------
+    match /usuarios/{uid} {
+      allow read: if esDueno(uid);
+      allow create: if esDueno(uid) && request.resource.data.uid == uid;
+      allow update: if esDueno(uid) && request.resource.data.uid == resource.data.uid;
+      allow delete: if false; // la baja de cuenta se hace desde el backend
+
+      // Registro diario: usuarios/{uid}/diario/{YYYY-MM-DD}
+      match /diario/{fecha} {
+        allow read, write: if esDueno(uid);
+
+        // Alimentos consumidos ese día
+        match /items/{itemId} {
+          allow read, write: if esDueno(uid);
+        }
+      }
+
+      // Mediciones corporales
+      match /progreso/{registroId} {
+        allow read, write: if esDueno(uid);
+      }
+
+      // Alimentos marcados como favoritos
+      match /favoritos/{alimentoId} {
+        allow read, write: if esDueno(uid);
+      }
+    }
+
+    // Todo lo demás queda cerrado.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

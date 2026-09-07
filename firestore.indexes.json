@@ -1,0 +1,38 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "alimentos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "publico", "order": "ASCENDING" },
+        { "fieldPath": "nombreBusqueda", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "alimentos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "creadoPor", "order": "ASCENDING" },
+        { "fieldPath": "nombreBusqueda", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "alimentos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "publico", "order": "ASCENDING" },
+        { "fieldPath": "categoria", "order": "ASCENDING" },
+        { "fieldPath": "nombreBusqueda", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "comida", "order": "ASCENDING" },
+        { "fieldPath": "creadoEn", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
