@@ -23,11 +23,77 @@ const API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions'
 // sin él, este modelo escribe su razonamiento dentro del propio mensaje.
 const MODELO = 'nvidia/nemotron-3.5-lightning-30b-a3b'
 
+/**
+ * Herramientas que el modelo puede pedir. El Worker no las ejecuta: devuelve
+ * la intención al cliente, que es quien tiene el catálogo y las reglas de
+ * salud para validarla y aplicarla. El modelo propone, el cliente dispone.
+ */
+const HERRAMIENTAS = [
+  {
+    type: 'function',
+    function: {
+      name: 'sustituir_alimento',
+      description:
+        'Cambia un alimento de una comida del plan por otro. Úsala siempre que el usuario pida cambiar, sustituir o quitar un alimento de su dieta.',
+      parameters: {
+        type: 'object',
+        properties: {
+          dia: { type: 'string', description: 'Día: "hoy", "mañana" o el nombre (Lunes, Martes...)' },
+          comida: {
+            type: 'string',
+            enum: ['desayuno', 'media_manana', 'almuerzo', 'merienda', 'cena'],
+            description: 'La comida del día. "almuerzo" es la comida del mediodía.',
+          },
+          quitar: { type: 'string', description: 'id del alimento que se quita, tal cual aparece en el menú' },
+          poner: { type: 'string', description: 'id del alimento nuevo, de la lista de alimentos disponibles' },
+        },
+        required: ['dia', 'comida', 'quitar', 'poner'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'ajustar_cantidad',
+      description:
+        'Cambia los gramos de un alimento que ya está en una comida. Úsala si piden más o menos cantidad de algo.',
+      parameters: {
+        type: 'object',
+        properties: {
+          dia: { type: 'string', description: 'Día: "hoy", "mañana" o el nombre' },
+          comida: {
+            type: 'string',
+            enum: ['desayuno', 'media_manana', 'almuerzo', 'merienda', 'cena'],
+          },
+          alimento: { type: 'string', description: 'id del alimento a ajustar' },
+          gramos: { type: 'number', description: 'Cantidad nueva en gramos' },
+        },
+        required: ['dia', 'comida', 'alimento', 'gramos'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'regenerar_dia',
+      description:
+        'Rehace un día entero con otros alimentos. Úsala si el usuario dice que un día no le gusta o quiere otra cosa distinta.',
+      parameters: {
+        type: 'object',
+        properties: {
+          dia: { type: 'string', description: 'Día: "hoy", "mañana" o el nombre' },
+        },
+        required: ['dia'],
+      },
+    },
+  },
+]
+
 const LIMITES = {
   caracteresPorMensaje: 1000,
   mensajesDeHistorial: 12,
   consultasPorDia: 40,
-  tokensRespuesta: 500,
+  tokensRespuesta: 800,
 }
 
 const ORIGENES_PERMITIDOS = [
@@ -56,13 +122,13 @@ export default {
       const historial = validarHistorial(cuerpo?.mensajes)
       await comprobarCuota(entorno.CUOTA, uid)
 
-      const respuesta = await preguntarAlModelo(
+      const { respuesta, acciones } = await preguntarAlModelo(
         entorno.NVIDIA_API_KEY,
         instruccionesDelSistema(cuerpo?.contexto ?? {}),
         historial,
       )
 
-      return json({ respuesta }, 200, cors)
+      return json({ respuesta, acciones }, 200, cors)
     } catch (error) {
       if (error instanceof ErrorHttp) {
         return json({ error: error.message }, error.estado, cors)
@@ -211,6 +277,7 @@ async function preguntarAlModelo(apiKey, sistema, historial) {
       body: JSON.stringify({
         model: MODELO,
         messages: [{ role: 'system', content: sistema }, ...historial],
+        tools: HERRAMIENTAS,
         max_tokens: LIMITES.tokensRespuesta,
         temperature: 0.6,
         chat_template_kwargs: { thinking: false },
@@ -228,10 +295,56 @@ async function preguntarAlModelo(apiKey, sistema, historial) {
   }
 
   const datos = await respuesta.json()
-  const texto = datos?.choices?.[0]?.message?.content?.trim()
-  if (!texto) throw new ErrorHttp(502, 'El asistente ha devuelto una respuesta vacía.')
+  const mensaje = datos?.choices?.[0]?.message
+  const texto = limpiarTexto(mensaje?.content ?? '')
+  const acciones = leerAcciones(mensaje?.tool_calls)
 
-  return texto
+  // Cuando el modelo llama a una herramienta, suele devolver el texto vacío:
+  // el mensaje de confirmación lo redacta el cliente con lo que ha pasado
+  // realmente, así que aquí no es un error.
+  if (!texto && acciones.length === 0) {
+    console.error('[asistente] Respuesta sin contenido:', JSON.stringify(datos).slice(0, 500))
+    throw new ErrorHttp(502, 'El asistente ha devuelto una respuesta vacía.')
+  }
+
+  return { respuesta: texto, acciones }
+}
+
+/**
+ * Deja el texto listo para enseñarlo tal cual en el chat.
+ *
+ * Dos limpiezas: el bloque <think> que el modelo filtra a veces pese a pedirle
+ * `thinking: false`, y las negritas de Markdown, que en las burbujas se verían
+ * como asteriscos literales porque se pintan como texto plano.
+ */
+function limpiarTexto(contenido) {
+  return String(contenido)
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<\/?think>/gi, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/__(.+?)__/g, '$1')
+    .trim()
+}
+
+/** Traduce las llamadas a herramientas del modelo al formato del cliente. */
+function leerAcciones(toolCalls) {
+  if (!Array.isArray(toolCalls)) return []
+
+  return toolCalls
+    .map((llamada) => {
+      try {
+        return {
+          nombre: llamada?.function?.name,
+          argumentos: JSON.parse(llamada?.function?.arguments ?? '{}'),
+        }
+      } catch {
+        // Un JSON mal formado del modelo no debe tumbar la respuesta entera.
+        console.warn('[asistente] Argumentos ilegibles:', llamada?.function?.arguments)
+        return null
+      }
+    })
+    .filter((accion) => accion?.nombre)
+    .slice(0, 3)
 }
 
 /**
@@ -239,12 +352,18 @@ async function preguntarAlModelo(apiKey, sistema, historial) {
  * son sus propios datos y solo afectaría a la respuesta que él mismo recibe.
  * Aun así se recorta, para no inflar el prompt.
  */
-function instruccionesDelSistema({ nombre, perfil, metas, menuDeHoy }) {
+function instruccionesDelSistema({ nombre, perfil, metas, menuDeHoy, catalogo }) {
   const lineas = [
     'Eres el asistente de Nutrición JR, una aplicación que diseña dietas personalizadas.',
     'Respondes en español de España, en segunda persona, con frases cortas y directas.',
     'Sé concreto: si te piden cantidades, da gramos. Si no sabes algo, dilo.',
     'Nada de encabezados ni respuestas largas: dos o tres párrafos como mucho.',
+    '',
+    '',
+    'Puedes modificar la dieta de verdad con las herramientas que tienes.',
+    'Cuando el usuario pida un cambio, LLÁMALAS: no digas que lo has cambiado si no las has usado.',
+    'Usa siempre los identificadores (id) que aparecen entre paréntesis, nunca el nombre suelto.',
+    'No anuncies el cambio antes de hacerlo; el resultado se le confirma al usuario automáticamente.',
     '',
     'Límites importantes:',
     '- No diagnosticas enfermedades ni ajustas medicación.',
@@ -279,14 +398,26 @@ function instruccionesDelSistema({ nombre, perfil, metas, menuDeHoy }) {
   if (menuDeHoy?.comidas?.length) {
     lineas.push('', `Menú de hoy (${texto(menuDeHoy.nombre)}), ${texto(menuDeHoy.kcal)} kcal:`)
     for (const comida of menuDeHoy.comidas.slice(0, 6)) {
-      lineas.push(`- ${recortar(String(comida?.etiqueta ?? ''), 30)}: ${recortar(String(comida?.alimentos ?? ''), 300)}`)
+      lineas.push(
+        `- ${recortar(String(comida?.etiqueta ?? ''), 30)} [comida: ${recortar(String(comida?.id ?? ''), 20)}]: ` +
+          recortar(String(comida?.alimentos ?? ''), 400),
+      )
     }
     lineas.push(
       '',
-      'Puedes proponer cambios sobre ese menú, pero para que se guarden hay que regenerar el plan en la pantalla "Mi dieta".',
+      'Para cambiar otro día distinto de hoy, pásale el nombre del día a la herramienta.',
     )
   } else {
-    lineas.push('', 'Todavía no tiene una dieta generada; puedes animarle a crearla en "Mi dieta".')
+    lineas.push('', 'Todavía no tiene una dieta generada; anímale a crearla en "Mi dieta".')
+  }
+
+  // Sin esta lista el modelo se inventa alimentos que no existen. Ya viene
+  // filtrada por las patologías y preferencias del usuario.
+  if (Array.isArray(catalogo) && catalogo.length > 0) {
+    lineas.push('', 'Alimentos disponibles para sustituir, ya filtrados para él:')
+    for (const [rol, alimentos] of Object.entries(agruparPorRol(catalogo))) {
+      lineas.push(`- ${rol}: ${alimentos.map((a) => a.id).join(', ')}`)
+    }
   }
 
   return lineas.join('\n')
@@ -309,6 +440,17 @@ function json(cuerpo, estado, cors) {
     status: estado,
     headers: { 'Content-Type': 'application/json; charset=utf-8', ...cors },
   })
+}
+
+function agruparPorRol(catalogo) {
+  return catalogo.slice(0, 120).reduce((grupos, alimento) => {
+    const rol = String(alimento?.rol ?? 'otros')
+    ;(grupos[rol] ??= []).push({
+      id: recortar(String(alimento?.id ?? ''), 40),
+      nombre: recortar(String(alimento?.nombre ?? ''), 40),
+    })
+    return grupos
+  }, {})
 }
 
 function texto(valor, defecto = 'sin indicar') {

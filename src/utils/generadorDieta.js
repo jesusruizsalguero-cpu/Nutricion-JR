@@ -137,6 +137,34 @@ export function regenerarDia(plan, indiceDia, perfil, semilla) {
   }
 }
 
+/**
+ * Rehace todo lo que se deriva de los días: lista de la compra, desviación
+ * respecto a las metas y alertas. Hay que llamarlo después de cualquier
+ * edición, o el plan queda diciendo cosas que ya no son ciertas.
+ */
+export function recalcularPlan(plan, perfil) {
+  return {
+    ...plan,
+    listaCompra: construirListaCompra(plan.dias),
+    desviacion: medirDesviacion(plan.dias, plan.metas),
+    alertas: revisarPlan(plan.dias, perfil ?? { patologias: plan.resumen?.patologias ?? [] }),
+  }
+}
+
+/** Totales de una comida y del día al que pertenece, tras tocar sus alimentos. */
+export function recalcularDia(dia) {
+  const comidas = dia.comidas.map((comida) => ({
+    ...comida,
+    totales: redondearTotales(sumarTotales(comida.alimentos)),
+  }))
+
+  return {
+    ...dia,
+    comidas,
+    totales: redondearTotales(sumarTotales(comidas.map((c) => c.totales))),
+  }
+}
+
 // --------------------------------------------------------------- Construcción
 
 /** Cuántas combinaciones distintas se prueban antes de quedarse con una. */
@@ -241,7 +269,7 @@ function penalizacionSodio(alimentos, gramos) {
  * el rango por pasos, más en los alimentos que se comen a cucharadas que en
  * los que se comen a cucharaditas.
  */
-function ajustarGramos(alimentos, objetivo) {
+export function ajustarGramos(alimentos, objetivo) {
   if (alimentos.length === 0) return []
 
   // Un error de ~0,01 equivale a quedarse a un 5% del objetivo en cada macro.

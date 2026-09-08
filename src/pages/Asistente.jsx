@@ -6,10 +6,10 @@ import { useAsistente } from '@/hooks/useAsistente'
 import { asistenteConfigurado } from '@/services/asistente'
 
 const SUGERENCIAS = [
-  '¿Puedo cambiar el arroz de hoy por pasta? ¿Cuánta pondría?',
-  '¿Qué ceno si llego tarde de entrenar y tengo poco tiempo?',
+  'Cámbiame el arroz de la comida de hoy por pasta.',
+  'No me gusta la cena de hoy, hazme otra.',
+  'Ponme más proteína en el desayuno.',
   '¿Cómo reparto la proteína a lo largo del día?',
-  'Dame una alternativa vegetariana para la comida de hoy.',
 ]
 
 /** Chat con el asistente de nutrición. */
@@ -41,7 +41,7 @@ export default function Asistente() {
             Asistente
           </h1>
           <p className="mt-0.5 text-sm text-slate-500">
-            Conoce tu perfil, tus metas y el menú de hoy. Pregúntale lo que quieras.
+            Conoce tu perfil, tus metas y tu menú, y puede cambiarte la dieta si se lo pides.
           </p>
         </div>
 

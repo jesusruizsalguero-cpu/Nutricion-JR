@@ -15,14 +15,22 @@ const SUGERENCIAS = [
 ]
 
 const CONVERSACION = [
-  { id: '1', rol: 'usuario', texto: '¿Puedo cambiar el arroz de la comida por pasta? ¿Cuánta pondría?' },
+  { id: '1', rol: 'usuario', texto: 'Cámbiame la pasta de la comida de hoy por arroz integral.' },
   {
     id: '2',
     rol: 'asistente',
+    // Confirmación tal y como la redacta `edicionPlan.js` tras aplicar el cambio.
     texto:
-      'Sí, puedes. Para mantener las mismas calorías, pon 80-90 g de pasta en crudo en lugar de los 300 g de arroz cocido.\n\nSi la quieres integral, la cantidad es la misma y ganas fibra. Recuerda que el plan es orientativo: si cambias varias cosas, regenera la dieta desde "Mi dieta" para que las cuentas cuadren.',
+      'Hecho. En comida del martes he cambiado Pasta cocida (480 g) por Arroz integral cocido (500 g). El día queda en 2988 kcal (-7 respecto a tu meta) y 145 g de proteína.',
   },
-  { id: '3', rol: 'usuario', texto: '¿Y si entreno justo antes de comer?' },
+  { id: '3', rol: 'usuario', texto: 'Ponme también pan integral en el desayuno.' },
+  {
+    id: '4',
+    rol: 'asistente',
+    // Un cambio rechazado por el perfil: el modelo propone, manda el filtro de salud.
+    texto: 'Pan integral no encaja con lo que tienes declarado (celiaquía), así que no te lo pongo.',
+  },
+  { id: '5', rol: 'usuario', texto: '¿Cuánta proteína llevo hoy?' },
 ]
 
 createRoot(document.getElementById('root')).render(

@@ -21,8 +21,28 @@ Authorization: Bearer <ID token de Firebase>
 
 - Valida el token (firma, proyecto, caducidad).
 - Aplica un tope de 40 consultas por usuario y día, guardado en KV.
-- Añade el perfil y el menú del día al prompt del sistema.
+- Añade el perfil, el menú del día y el catálogo permitido al prompt.
 - Llama al modelo `nvidia/nemotron-3.5-lightning-30b-a3b`.
+
+## Modificar la dieta
+
+El asistente puede cambiar el plan, no solo hablar de él. Se le ofrecen tres
+herramientas (`sustituir_alimento`, `ajustar_cantidad`, `regenerar_dia`) y,
+cuando el modelo las llama, el Worker **no las ejecuta**: devuelve la intención
+al cliente en el campo `acciones`.
+
+Quien las aplica es `src/utils/edicionPlan.js`, y esto es a propósito. Allí
+están el catálogo y las reglas de salud, así que allí se puede validar: si el
+modelo propone pan a un celíaco o un alimento que no existe, se rechaza con un
+mensaje claro. El modelo propone; el código dispone.
+
+El texto que confirma el cambio lo redacta el cliente con lo que ha ocurrido de
+verdad —incluidas las calorías recalculadas—, nunca el modelo. Así no puede
+decir "ya te lo he cambiado" sobre algo que no ha cambiado.
+
+Detalle del modelo: hay que dejarle margen de tokens (`tokensRespuesta`) porque
+al usar herramientas a veces razona antes de llamarlas; con poco margen devolvía
+llamadas con los argumentos vacíos.
 
 ## Despliegue
 

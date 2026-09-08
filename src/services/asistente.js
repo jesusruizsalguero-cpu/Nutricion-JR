@@ -53,7 +53,9 @@ export async function borrarConversacion(uid) {
 }
 
 /**
- * Envía la conversación al Worker y devuelve la respuesta del asistente.
+ * Envía la conversación al Worker y devuelve `{ respuesta, acciones }`.
+ * Las acciones son cambios que el modelo quiere hacer en la dieta; las aplica
+ * el cliente (ver `utils/edicionPlan.js`), que es quien puede validarlas.
  * El contexto viaja desde el cliente: son datos del propio usuario, así que
  * falsearlos solo afectaría a la respuesta que él mismo recibe.
  */
@@ -81,5 +83,5 @@ export async function preguntar(mensajes, contexto) {
     throw new Error(datos.error ?? 'El asistente no ha podido responder. Inténtalo de nuevo.')
   }
 
-  return datos.respuesta
+  return { respuesta: datos.respuesta ?? '', acciones: datos.acciones ?? [] }
 }

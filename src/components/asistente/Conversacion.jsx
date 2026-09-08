@@ -78,7 +78,8 @@ function Bienvenida({ sugerencias, onElegir }) {
         <Sparkles className="size-6 text-marca-600" aria-hidden="true" />
       </div>
       <p className="text-sm text-slate-600">
-        Puedo ayudarte con tu dieta, con cambios de alimentos o con dudas de nutrición.
+        Puedo resolverte dudas y también cambiarte la dieta: pídeme que sustituya un
+        alimento, que ajuste una cantidad o que rehaga un día entero.
       </p>
 
       <div className="mt-5 grid gap-2 text-left sm:grid-cols-2">
