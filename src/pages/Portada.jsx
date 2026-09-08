@@ -1,13 +1,16 @@
-import { Link } from 'react-router-dom'
 import { ArrowRight, Salad } from 'lucide-react'
 
 /**
- * Portada: lo primero que se ve antes de entrar. Además de dar la bienvenida,
- * deja claro de dónde salen los datos nutricionales de la app — no de
- * estimaciones propias, sino de las dos bases de composición de alimentos que
- * la sustentan.
+ * Portada: la pantalla de arranque de la app, se vea con sesión iniciada o
+ * sin ella. Además de dar la bienvenida, deja claro de dónde salen los datos
+ * nutricionales — no de estimaciones propias, sino de las dos bases de
+ * composición de alimentos que la sustentan.
+ *
+ * Recibe las acciones en vez de enlaces porque se pinta por encima de las
+ * rutas, no como una de ellas: un <Link> cambiaría la dirección pero dejaría
+ * la portada delante.
  */
-export default function Portada() {
+export default function Portada({ onEntrar, onVerFuentes }) {
   return (
     <div className="relative flex min-h-screen flex-col overflow-hidden bg-gradient-to-b from-marca-700 via-marca-600 to-marca-800">
       {/* Dos halos suaves para que el fondo no sea un plano liso. */}
@@ -32,23 +35,25 @@ export default function Portada() {
         </p>
 
         <nav className="mt-10 flex w-full max-w-xs flex-col gap-3">
-          <Link
-            to="/login"
+          <button
+            type="button"
+            onClick={onEntrar}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3.5
                        text-sm font-semibold text-marca-800 shadow-lg transition-colors
                        hover:bg-marca-50 active:bg-marca-100"
           >
             Entrar
             <ArrowRight className="size-4" aria-hidden="true" />
-          </Link>
+          </button>
 
-          <Link
-            to="/fuentes"
+          <button
+            type="button"
+            onClick={onVerFuentes}
             className="inline-flex items-center justify-center rounded-xl border border-white/30 px-5 py-3
                        text-sm font-medium text-white transition-colors hover:bg-white/10"
           >
             De dónde salen los datos
-          </Link>
+          </button>
         </nav>
       </main>
 
