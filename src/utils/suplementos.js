@@ -24,8 +24,13 @@ import { DEPORTES } from '@/utils/salud'
 const tieneDeporte = (perfil, ...cuales) =>
   (perfil.deportes ?? []).some((d) => cuales.includes(d))
 
+// Caminar y el yoga no crean la demanda de proteína que justifica un
+// suplemento: para eso hace falta algún deporte de intensidad.
+const DEPORTES_SUAVES = ['caminar', 'yoga']
+
 const entrenaFuerte = (perfil) =>
-  (perfil.sesionesSemana ?? 0) >= 3 && (perfil.deportes ?? []).length > 0
+  (perfil.sesionesSemana ?? 0) >= 3 &&
+  (perfil.deportes ?? []).some((d) => !DEPORTES_SUAVES.includes(d))
 
 const tiene = (perfil, patologia) => (perfil.patologias ?? []).includes(patologia)
 
@@ -147,15 +152,18 @@ export const SUPLEMENTOS = [
     descripcion:
       'Mejora el rendimiento y la percepción de esfuerzo. 3 mg por kg de peso es la dosis habitual.',
     momento: '30-60 minutos antes de entrenar. Evítala por la tarde si te cuesta dormir.',
-    cuando: ({ perfil }) => (perfil.sesionesSemana ?? 0) >= 3,
+    // En el embarazo no se propone siquiera: la cafeína ahí se limita, no se
+    // busca. Recomendarla con una advertencia sería un mensaje contradictorio.
+    cuando: ({ perfil }) =>
+      (perfil.sesionesSemana ?? 0) >= 3 &&
+      (perfil.deportes ?? []).some((d) => !DEPORTES_SUAVES.includes(d)) &&
+      !tiene(perfil, 'embarazo'),
     motivo: ({ perfil }) =>
       `Entrenas ${perfil.sesionesSemana} veces por semana y la cafeína es de lo más contrastado para rendir en esas sesiones.`,
     evitarSi: ({ perfil }) =>
       tiene(perfil, 'hipertension')
         ? 'Con hipertensión sube la tensión de forma puntual: consúltalo antes.'
-        : tiene(perfil, 'embarazo')
-          ? 'En el embarazo el límite está en 200 mg al día contando el café y el té.'
-          : null,
+        : null,
   },
   {
     id: 'magnesio',

@@ -15,6 +15,7 @@ import Panel from '@/pages/Panel'
 import MiDieta from '@/pages/MiDieta'
 import Perfil from '@/pages/Perfil'
 import Asistente from '@/pages/Asistente'
+import Suplementacion from '@/pages/Suplementacion'
 import Admin from '@/pages/Admin'
 
 export default function App() {
@@ -48,6 +49,7 @@ export default function App() {
               <Route path="/" element={<Panel />} />
               <Route path="/dieta" element={<MiDieta />} />
               <Route path="/asistente" element={<Asistente />} />
+              <Route path="/suplementacion" element={<Suplementacion />} />
               <Route path="/perfil" element={<Perfil />} />
 
               {/* Zona de administración: solo accesible para uids en la whitelist */}

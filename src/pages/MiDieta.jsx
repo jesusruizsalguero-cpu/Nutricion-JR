@@ -1,9 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, Info, RefreshCw, ShoppingBasket, Sparkles, UtensilsCrossed } from 'lucide-react'
+import {
+  AlertTriangle,
+  Info,
+  Pencil,
+  RefreshCw,
+  ShoppingBasket,
+  Sparkles,
+  UtensilsCrossed,
+} from 'lucide-react'
 import Boton from '@/components/ui/Boton'
 import Cargando from '@/components/ui/Cargando'
 import ComidaPlan from '@/components/dieta/ComidaPlan'
+import EditorComida from '@/components/dieta/EditorComida'
 import ListaCompra from '@/components/dieta/ListaCompra'
 import BarrasMacros from '@/components/nutricion/BarrasMacros'
 import { useAuth } from '@/hooks/useAuth'
@@ -11,13 +20,20 @@ import { usePlan } from '@/hooks/usePlan'
 import { entero, mensajeErrorPlan } from '@/utils/formato'
 import { OBJETIVOS } from '@/utils/nutricion'
 import { DEPORTES, PATOLOGIAS } from '@/utils/salud'
+import { alimentosPermitidos } from '@/utils/edicionPlan'
 
 /** Pantalla principal: el plan de comidas generado a partir del perfil. */
 export default function MiDieta() {
   const { datos, metas } = useAuth()
-  const { plan, cargando, trabajando, error, generar, cambiarDia } = usePlan()
+  const { plan, cargando, trabajando, error, generar, cambiarDia, crearVacio, cambiarGramos, anadir, quitar } =
+    usePlan()
   const [diaActivo, setDiaActivo] = useState(0)
   const [vista, setVista] = useState('plan')
+  const [editando, setEditando] = useState(false)
+
+  // Solo los alimentos que el perfil admite: así no se puede añadir a mano
+  // algo que el generador nunca habría puesto.
+  const catalogo = useMemo(() => alimentosPermitidos(datos?.perfil), [datos?.perfil])
 
   // Al cambiar de plan, volver al primer día evita quedarse en un índice viejo.
   useEffect(() => setDiaActivo(0), [plan?.id])
@@ -32,6 +48,7 @@ export default function MiDieta() {
         trabajando={trabajando}
         error={error}
         onGenerar={() => generar({ numeroComidas: datos?.perfil?.numeroComidas ?? 4 })}
+        onCrearVacio={() => crearVacio({ numeroComidas: datos?.perfil?.numeroComidas ?? 4 })}
       />
     )
   }
@@ -116,22 +133,56 @@ export default function MiDieta() {
               · P {entero(dia.totales.proteinas)} g · C {entero(dia.totales.carbohidratos)} g · G{' '}
               {entero(dia.totales.grasas)} g · fibra {entero(dia.totales.fibra)} g
             </p>
-            <Boton
-              variante="fantasma"
-              tamano="sm"
-              icono={RefreshCw}
-              cargando={trabajando}
-              onClick={() => cambiarDia(diaActivo)}
-            >
-              Cambiar este día
-            </Boton>
+            <div className="flex gap-2">
+              <Boton
+                variante={editando ? 'primario' : 'fantasma'}
+                tamano="sm"
+                icono={Pencil}
+                onClick={() => setEditando((valor) => !valor)}
+              >
+                {editando ? 'Terminar' : 'Editar a mano'}
+              </Boton>
+              {!editando && (
+                <Boton
+                  variante="fantasma"
+                  tamano="sm"
+                  icono={RefreshCw}
+                  cargando={trabajando}
+                  onClick={() => cambiarDia(diaActivo)}
+                >
+                  Cambiar este día
+                </Boton>
+              )}
+            </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            {dia.comidas.map((comida) => (
-              <ComidaPlan key={comida.id} comida={comida} />
-            ))}
+            {dia.comidas.map((comida) =>
+              editando ? (
+                <EditorComida
+                  key={comida.id}
+                  comida={comida}
+                  catalogo={catalogo}
+                  onAjustar={(alimentoId, gramos) =>
+                    cambiarGramos(dia.nombre, comida.id, alimentoId, gramos)
+                  }
+                  onQuitar={(alimentoId) => quitar(dia.nombre, comida.id, alimentoId)}
+                  onAnadir={(alimentoId, gramos) =>
+                    anadir(dia.nombre, comida.id, alimentoId, gramos)
+                  }
+                />
+              ) : (
+                <ComidaPlan key={comida.id} comida={comida} />
+              ),
+            )}
           </div>
+
+          {editando && (
+            <p className="text-center text-xs text-slate-400">
+              Los cambios se guardan solos. Las cuentas del día y la lista de la compra se
+              rehacen con cada cambio.
+            </p>
+          )}
         </>
       )}
 
@@ -143,7 +194,7 @@ export default function MiDieta() {
   )
 }
 
-function SinPlan({ perfil, metas, trabajando, error, onGenerar }) {
+function SinPlan({ perfil, metas, trabajando, error, onGenerar, onCrearVacio }) {
   const deportes = (perfil?.deportes ?? []).map((d) => DEPORTES[d]?.etiqueta).filter(Boolean)
   const patologias = (perfil?.patologias ?? []).map((p) => PATOLOGIAS[p]?.etiqueta).filter(Boolean)
 
@@ -165,7 +216,19 @@ function SinPlan({ perfil, metas, trabajando, error, onGenerar }) {
         <Boton icono={Sparkles} cargando={trabajando} onClick={onGenerar}>
           Diseñar mi dieta
         </Boton>
-        <Link to="/perfil" className="text-sm text-slate-500 underline hover:text-slate-700">
+
+        <div className="flex items-center gap-2 text-sm text-slate-400">
+          <span className="h-px w-8 bg-slate-200" />o<span className="h-px w-8 bg-slate-200" />
+        </div>
+
+        <Boton variante="secundario" icono={Pencil} cargando={trabajando} onClick={onCrearVacio}>
+          Crea tu dieta
+        </Boton>
+        <p className="max-w-xs text-xs text-slate-500">
+          Empieza con los días y las comidas vacíos y ve poniendo tú los alimentos y los gramos.
+        </p>
+
+        <Link to="/perfil" className="mt-2 text-sm text-slate-500 underline hover:text-slate-700">
           Revisar mis datos antes
         </Link>
       </div>

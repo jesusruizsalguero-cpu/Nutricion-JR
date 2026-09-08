@@ -12,8 +12,8 @@
  */
 
 import { ALIMENTOS, ALIMENTOS_POR_ID } from '@/data/alimentos'
-import { construirFiltro, PATOLOGIAS, PREFERENCIAS } from '@/utils/salud'
-import { escalarPorcion, COMIDAS_POR_ID } from '@/utils/nutricion'
+import { avisosDe, construirFiltro, PATOLOGIAS, PREFERENCIAS } from '@/utils/salud'
+import { escalarPorcion, COMIDAS_POR_ID, repartirEnComidas } from '@/utils/nutricion'
 import {
   ajustarGramos,
   DIAS_SEMANA,
@@ -298,7 +298,18 @@ function alternativas(rol, perfil, propios = [], cuantas = 5) {
   return opciones.length > 0 ? `También puedo poner: ${opciones.join(', ')}.` : ''
 }
 
-/** Catálogo apto para el usuario, en el formato compacto que se envía al modelo. */
+/**
+ * Alimentos que el perfil admite, completos. Para la interfaz, que necesita
+ * las kcal y el rango de ración de cada uno.
+ */
+export function alimentosPermitidos(perfil) {
+  return ALIMENTOS.filter(construirFiltro(perfil))
+}
+
+/**
+ * El mismo catálogo pero recortado a lo imprescindible, que es lo que se le
+ * manda al asistente: cada campo de más son tokens en cada consulta.
+ */
 export function catalogoPermitido(perfil) {
   const esApto = construirFiltro(perfil)
   return ALIMENTOS.filter(esApto).map((alimento) => ({
@@ -453,4 +464,111 @@ function numero(valor, etiqueta, minimo, maximo) {
     throw new ErrorEdicion(`Necesito ${etiqueta} por 100 g, entre ${minimo} y ${maximo}.`)
   }
   return Math.round(cifra * 10) / 10
+}
+
+// ------------------------------------------------- Edición manual del plan
+
+/** Mete un alimento nuevo en una comida, con los gramos que se indiquen. */
+export function anadirAlimento(plan, perfil, { dia, comida, alimento, gramos }, propios = []) {
+  const cantidad = validarGramos(gramos)
+  const indiceDia = resolverDia(plan, dia)
+  const diaActual = plan.dias[indiceDia]
+  const indiceComida = resolverComida(diaActual, comida)
+  const comidaActual = diaActual.comidas[indiceComida]
+
+  const nuevo = resolverAlimentoDelCatalogo(alimento, perfil, propios)
+  if (comidaActual.alimentos.some((a) => a.id === nuevo.id)) {
+    throw new ErrorEdicion(`${nuevo.nombre} ya está en esa comida.`)
+  }
+
+  const alimentos = [
+    ...comidaActual.alimentos,
+    {
+      id: nuevo.id,
+      nombre: nuevo.nombre,
+      rol: nuevo.rol,
+      gramos: cantidad,
+      ...escalarPorcion(nuevo, cantidad),
+    },
+  ]
+
+  const planNuevo = reemplazarComida(plan, perfil, indiceDia, indiceComida, alimentos)
+  return {
+    plan: planNuevo,
+    alimentoCreado: nuevo.propio && !existe(nuevo.id, propios) ? nuevo : null,
+    descripcion: `He añadido ${nuevo.nombre} (${cantidad} g) a ${etiquetaComida(comidaActual)} del ${diaActual.nombre.toLowerCase()}. ${resumenDelDia(planNuevo.dias[indiceDia], planNuevo.metas)}`,
+  }
+}
+
+/** Saca un alimento de una comida. */
+export function quitarAlimento(plan, perfil, { dia, comida, alimento }) {
+  const indiceDia = resolverDia(plan, dia)
+  const diaActual = plan.dias[indiceDia]
+  const indiceComida = resolverComida(diaActual, comida)
+  const comidaActual = diaActual.comidas[indiceComida]
+  const indiceAlimento = resolverAlimentoEnComida(comidaActual, alimento)
+  const quitado = comidaActual.alimentos[indiceAlimento]
+
+  const alimentos = comidaActual.alimentos.filter((_, i) => i !== indiceAlimento)
+  const planNuevo = reemplazarComida(plan, perfil, indiceDia, indiceComida, alimentos)
+
+  return {
+    plan: planNuevo,
+    descripcion: `He quitado ${quitado.nombre} de ${etiquetaComida(comidaActual)} del ${diaActual.nombre.toLowerCase()}. ${resumenDelDia(planNuevo.dias[indiceDia], planNuevo.metas)}`,
+  }
+}
+
+/**
+ * Plan vacío con la estructura de días y comidas, pero sin alimentos, para
+ * montarlo a mano desde "Crea tu dieta". Conserva los objetivos por comida,
+ * así se puede ir viendo cuánto falta para cuadrar con las metas.
+ */
+export function crearPlanVacio({ perfil, metas, numeroComidas = 4, dias = 7, nombre }) {
+  const estructura = repartirEnComidas(metas, numeroComidas)
+
+  const diasVacios = Array.from({ length: dias }, (_, indice) => ({
+    nombre: DIAS_SEMANA[indice % DIAS_SEMANA.length],
+    comidas: estructura.map((comida) => ({
+      id: comida.id,
+      etiqueta: comida.etiqueta,
+      icono: comida.icono,
+      objetivo: comida.objetivo,
+      alimentos: [],
+      totales: { kcal: 0, proteinas: 0, carbohidratos: 0, grasas: 0, fibra: 0, sodio: 0 },
+    })),
+    totales: { kcal: 0, proteinas: 0, carbohidratos: 0, grasas: 0, fibra: 0, sodio: 0 },
+  }))
+
+  return recalcularPlan(
+    {
+      version: 1,
+      semilla: `manual-${Date.now()}`,
+      creadoEn: new Date().toISOString(),
+      nombre: nombre ?? 'Mi dieta a medida',
+      manual: true,
+      numeroComidas,
+      metas,
+      resumen: {
+        objetivo: perfil?.objetivo ?? null,
+        deportes: perfil?.deportes ?? [],
+        sesionesSemana: perfil?.sesionesSemana ?? 0,
+        minutosSesion: perfil?.minutosSesion ?? 0,
+        patologias: perfil?.patologias ?? [],
+        preferencias: perfil?.preferencias ?? [],
+      },
+      avisos: avisosDe(perfil?.patologias),
+      notasDeporte: [],
+      cobertura: { escasos: [], suficiente: true },
+      dias: diasVacios,
+    },
+    perfil,
+  )
+}
+
+function validarGramos(gramos) {
+  const cantidad = Math.round(Number(gramos))
+  if (!Number.isFinite(cantidad) || cantidad <= 0 || cantidad > 2000) {
+    throw new ErrorEdicion('Los gramos tienen que estar entre 1 y 2000.')
+  }
+  return cantidad
 }

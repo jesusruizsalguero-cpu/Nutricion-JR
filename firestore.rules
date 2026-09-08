@@ -87,6 +87,11 @@ service cloud.firestore {
         allow read, write: if esDueno(uid);
       }
 
+      // Suplementos que el usuario añade por su cuenta
+      match /suplementos/{suplementoId} {
+        allow read, write: if esDueno(uid);
+      }
+
       // Mediciones corporales
       match /progreso/{registroId} {
         allow read, write: if esDueno(uid);
