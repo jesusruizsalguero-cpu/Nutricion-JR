@@ -162,10 +162,35 @@ export default {
   async fetch(peticion, entorno) {
     const origen = peticion.headers.get('Origin')
     const cors = cabecerasCors(origen)
+    const url = new URL(peticion.url)
 
     if (peticion.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: cors })
     }
+
+    if (url.pathname === '/usage' && peticion.method === 'GET') {
+      try {
+        const uid = await verificarToken(peticion, entorno.FIREBASE_PROJECT)
+        const clave = `${uid}:${new Date().toISOString().slice(0, 10)}`
+        const consultas = Number((await entorno.CUOTA.get(clave)) ?? 0)
+        return json(
+          {
+            consultas,
+            limite: LIMITES.consultasPorDia,
+            porcentaje: Math.round((consultas / LIMITES.consultasPorDia) * 100),
+            costoEstimado: (consultas * 0.00024).toFixed(4),
+          },
+          200,
+          cors,
+        )
+      } catch (error) {
+        if (error instanceof ErrorHttp) {
+          return json({ error: error.message }, error.estado, cors)
+        }
+        return json({ error: 'Error al obtener uso.' }, 500, cors)
+      }
+    }
+
     if (peticion.method !== 'POST') {
       return json({ error: 'Método no permitido.' }, 405, cors)
     }

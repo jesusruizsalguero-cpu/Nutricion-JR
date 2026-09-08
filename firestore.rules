@@ -8,7 +8,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function esDueno(uid) {
+    function propio(uid) {
       return autenticado() && request.auth.uid == uid;
     }
 
@@ -19,6 +19,18 @@ service cloud.firestore {
       return autenticado()
              && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
              && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.activo == true;
+    }
+
+    // Un admin bloquea a alguien creando bloqueados/{uid}. Se comprueba aquí,
+    // en el propio uid que hace la petición, para que afecte a todos sus
+    // datos de golpe (ver esDueno) y no solo a lo que la interfaz decida ocultar.
+    function bloqueado() {
+      return exists(/databases/$(database)/documents/bloqueados/$(request.auth.uid))
+             && get(/databases/$(database)/documents/bloqueados/$(request.auth.uid)).data.bloqueado == true;
+    }
+
+    function esDueno(uid) {
+      return propio(uid) && !bloqueado();
     }
 
     function numeroPositivo(valor) {
@@ -56,8 +68,15 @@ service cloud.firestore {
     // cliente a propósito (allow write: if false), así que solo se puede dar
     // de alta a un admin manualmente desde la consola de Firebase.
     match /admins/{uid} {
-      allow read: if esDueno(uid);
+      allow read: if propio(uid);
       allow write: if false;
+    }
+
+    // El propio afectado puede leer por qué no le entra la app; el admin lo
+    // gestiona (bloquear/desbloquear) desde el panel.
+    match /bloqueados/{uid} {
+      allow read: if propio(uid) || esAdmin();
+      allow write: if esAdmin();
     }
 
     // ---------- Datos privados del usuario ----------

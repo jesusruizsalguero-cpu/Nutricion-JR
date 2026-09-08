@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 import BarraLateral from '@/components/layout/BarraLateral'
 import BarraInferior from '@/components/layout/BarraInferior'
 import Encabezado from '@/components/layout/Encabezado'
+import { UsageCard } from '@/components/UsageCard'
 
 /** Escritorio: barra lateral fija. Móvil: encabezado + navegación inferior. */
 export default function Layout() {
@@ -18,6 +19,7 @@ export default function Layout() {
       </div>
 
       <BarraInferior />
+      <UsageCard />
     </div>
   )
 }

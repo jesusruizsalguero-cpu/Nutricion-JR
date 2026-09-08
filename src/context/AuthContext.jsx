@@ -2,7 +2,7 @@ import { createContext, useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/config/firebase'
 import { escucharUsuario } from '@/services/usuarios'
-import { escucharEsAdmin } from '@/services/admin'
+import { escucharEsAdmin, escucharBloqueado } from '@/services/admin'
 
 export const AuthContext = createContext(null)
 
@@ -10,6 +10,7 @@ export function AuthProvider({ children }) {
   const [usuario, setUsuario] = useState(null) // credencial de Firebase Auth
   const [datos, setDatos] = useState(null) // documento en usuarios/{uid}
   const [esAdmin, setEsAdmin] = useState(false) // ¿está en la whitelist admins/{uid}?
+  const [bloqueado, setBloqueado] = useState(false) // ¿un admin lo bloqueó? (bloqueados/{uid})
   const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
@@ -25,6 +26,7 @@ export function AuthProvider({ children }) {
       if (!credencial) {
         setDatos(null)
         setEsAdmin(false)
+        setBloqueado(false)
         setCargando(false)
       }
     })
@@ -39,6 +41,19 @@ export function AuthProvider({ children }) {
       (error) => {
         console.error('[Auth] No se pudo comprobar el rol de administrador:', error)
         setEsAdmin(false)
+      },
+    )
+  }, [usuario])
+
+  useEffect(() => {
+    if (!usuario) return undefined
+
+    return escucharBloqueado(
+      usuario.uid,
+      (valor) => setBloqueado(valor),
+      (error) => {
+        console.error('[Auth] No se pudo comprobar el bloqueo:', error)
+        setBloqueado(false)
       },
     )
   }, [usuario])
@@ -72,8 +87,9 @@ export function AuthProvider({ children }) {
       metas: datos?.metas ?? null,
       perfilCompleto: Boolean(datos?.onboardingCompleto),
       esAdmin,
+      bloqueado,
     }),
-    [usuario, datos, cargando, esAdmin],
+    [usuario, datos, cargando, esAdmin, bloqueado],
   )
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>
