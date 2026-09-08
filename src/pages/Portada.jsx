@@ -9,10 +9,15 @@ import { ArrowRight, Salad } from 'lucide-react'
  * Recibe las acciones en vez de enlaces porque se pinta por encima de las
  * rutas, no como una de ellas: un <Link> cambiaría la dirección pero dejaría
  * la portada delante.
+ *
+ * La altura sale del contenedor fijo que la envuelve (h-full), no de unidades
+ * de viewport: instalada en iOS, 100vh/dvh incluye la franja de la barra de
+ * estado, y lo que sobresale de un contenedor fijo no se puede alcanzar
+ * haciendo scroll — el pie quedaba cortado.
  */
 export default function Portada({ onEntrar, onVerFuentes }) {
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-gradient-to-b from-marca-700 via-marca-600 to-marca-800">
+    <div className="relative flex h-full flex-col overflow-hidden bg-gradient-to-b from-marca-700 via-marca-600 to-marca-800">
       {/* Dos halos suaves para que el fondo no sea un plano liso. */}
       <div
         aria-hidden="true"
@@ -23,7 +28,7 @@ export default function Portada({ onEntrar, onVerFuentes }) {
         className="pointer-events-none absolute -bottom-40 -left-24 size-96 rounded-full bg-marca-900/40 blur-3xl"
       />
 
-      <main className="relative flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
+      <main className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-12 text-center">
         <div className="mb-7 rounded-3xl bg-white/15 p-5 ring-1 ring-white/25 backdrop-blur-sm">
           <Salad className="size-14 text-white" aria-hidden="true" />
         </div>
@@ -31,7 +36,7 @@ export default function Portada({ onEntrar, onVerFuentes }) {
         <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">NUTRICIÓN-JR</h1>
 
         <p className="mt-4 max-w-sm text-balance text-sm text-marca-50/90 sm:text-base">
-          Tu dieta calculada a partir de tu edad, tu peso, tu deporte y tu salud.
+          Tu dieta calculada según tu edad, deporte y condición física.
         </p>
 
         <nav className="mt-10 flex w-full max-w-xs flex-col gap-3">
@@ -57,7 +62,7 @@ export default function Portada({ onEntrar, onVerFuentes }) {
         </nav>
       </main>
 
-      <footer className="relative pb-8 text-center">
+      <footer className="relative px-6 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-center">
         <p className="text-xs text-marca-100/80">Datos nutricionales de</p>
         <p className="mt-1 text-xs font-medium text-white/90">USDA FoodData Central y BEDCA</p>
       </footer>
