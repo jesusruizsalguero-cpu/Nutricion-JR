@@ -7,6 +7,8 @@ import AvisoConfiguracion from '@/components/AvisoConfiguracion'
 import ActualizacionApp from '@/components/ActualizacionApp'
 import Layout from '@/components/layout/Layout'
 
+import Portada from '@/pages/Portada'
+import Fuentes from '@/pages/Fuentes'
 import Login from '@/pages/Login'
 import Onboarding from '@/pages/Onboarding'
 import Panel from '@/pages/Panel'
@@ -28,8 +30,12 @@ export default function App() {
         <AvisoConfiguracion />
       ) : (
         <Routes>
-          {/* Pública — si ya hay sesión, redirige al panel */}
+          {/* La procedencia de los datos se puede consultar sin cuenta. */}
+          <Route path="/fuentes" element={<Fuentes />} />
+
+          {/* Públicas — si ya hay sesión, redirigen al panel */}
           <Route element={<RutaPublica />}>
+            <Route path="/portada" element={<Portada />} />
             <Route path="/login" element={<Login />} />
           </Route>
 

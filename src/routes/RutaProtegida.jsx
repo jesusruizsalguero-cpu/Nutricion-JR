@@ -12,8 +12,10 @@ export default function RutaProtegida() {
 
   if (cargando) return <Cargando pantallaCompleta mensaje="Cargando tu cuenta…" />
 
+  // A la portada, no directo al login: es la primera pantalla de la app y
+  // desde ahí se entra.
   if (!autenticado) {
-    return <Navigate to="/login" state={{ desde: ubicacion.pathname }} replace />
+    return <Navigate to="/portada" state={{ desde: ubicacion.pathname }} replace />
   }
 
   const enOnboarding = ubicacion.pathname === '/bienvenida'
