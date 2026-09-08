@@ -4,6 +4,7 @@ import RutaProtegida from '@/routes/RutaProtegida'
 import RutaPublica from '@/routes/RutaPublica'
 import RutaAdmin from '@/routes/RutaAdmin'
 import AvisoConfiguracion from '@/components/AvisoConfiguracion'
+import ActualizacionApp from '@/components/ActualizacionApp'
 import Layout from '@/components/layout/Layout'
 
 import Login from '@/pages/Login'
@@ -15,37 +16,44 @@ import Asistente from '@/pages/Asistente'
 import Admin from '@/pages/Admin'
 
 export default function App() {
-  // Sin claves de Firebase la app no puede hacer nada útil: mejor decirlo claro.
-  if (configuracionIncompleta) {
-    return <AvisoConfiguracion />
-  }
-
   return (
-    <Routes>
-      {/* Pública — si ya hay sesión, redirige al panel */}
-      <Route element={<RutaPublica />}>
-        <Route path="/login" element={<Login />} />
-      </Route>
+    <>
+      {/* Independiente de Firebase: el service worker se registra igualmente
+          aunque falte la configuración, para poder avisar de actualizaciones
+          incluso en esa pantalla. */}
+      <ActualizacionApp />
 
-      {/* Privadas */}
-      <Route element={<RutaProtegida />}>
-        {/* El asistente inicial ocupa la pantalla entera, sin navegación */}
-        <Route path="/bienvenida" element={<Onboarding />} />
-
-        <Route element={<Layout />}>
-          <Route path="/" element={<Panel />} />
-          <Route path="/dieta" element={<MiDieta />} />
-          <Route path="/asistente" element={<Asistente />} />
-          <Route path="/perfil" element={<Perfil />} />
-
-          {/* Zona de administración: solo accesible para uids en la whitelist */}
-          <Route element={<RutaAdmin />}>
-            <Route path="/admin" element={<Admin />} />
+      {/* Sin claves de Firebase la app no puede hacer nada útil: mejor decirlo claro. */}
+      {configuracionIncompleta ? (
+        <AvisoConfiguracion />
+      ) : (
+        <Routes>
+          {/* Pública — si ya hay sesión, redirige al panel */}
+          <Route element={<RutaPublica />}>
+            <Route path="/login" element={<Login />} />
           </Route>
-        </Route>
-      </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+          {/* Privadas */}
+          <Route element={<RutaProtegida />}>
+            {/* El asistente inicial ocupa la pantalla entera, sin navegación */}
+            <Route path="/bienvenida" element={<Onboarding />} />
+
+            <Route element={<Layout />}>
+              <Route path="/" element={<Panel />} />
+              <Route path="/dieta" element={<MiDieta />} />
+              <Route path="/asistente" element={<Asistente />} />
+              <Route path="/perfil" element={<Perfil />} />
+
+              {/* Zona de administración: solo accesible para uids en la whitelist */}
+              <Route element={<RutaAdmin />}>
+                <Route path="/admin" element={<Admin />} />
+              </Route>
+            </Route>
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      )}
+    </>
   )
 }
