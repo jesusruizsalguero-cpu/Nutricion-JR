@@ -2,12 +2,14 @@ import { createContext, useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/config/firebase'
 import { escucharUsuario } from '@/services/usuarios'
+import { escucharEsAdmin } from '@/services/admin'
 
 export const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [usuario, setUsuario] = useState(null) // credencial de Firebase Auth
   const [datos, setDatos] = useState(null) // documento en usuarios/{uid}
+  const [esAdmin, setEsAdmin] = useState(false) // ¿está en la whitelist admins/{uid}?
   const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
@@ -22,10 +24,24 @@ export function AuthProvider({ children }) {
       setUsuario(credencial)
       if (!credencial) {
         setDatos(null)
+        setEsAdmin(false)
         setCargando(false)
       }
     })
   }, [])
+
+  useEffect(() => {
+    if (!usuario) return undefined
+
+    return escucharEsAdmin(
+      usuario.uid,
+      (valor) => setEsAdmin(valor),
+      (error) => {
+        console.error('[Auth] No se pudo comprobar el rol de administrador:', error)
+        setEsAdmin(false)
+      },
+    )
+  }, [usuario])
 
   // El documento del usuario se escucha en tiempo real: al cambiar el perfil
   // o las metas, toda la app se entera sin recargar.
@@ -55,8 +71,9 @@ export function AuthProvider({ children }) {
       uid: usuario?.uid ?? null,
       metas: datos?.metas ?? null,
       perfilCompleto: Boolean(datos?.onboardingCompleto),
+      esAdmin,
     }),
-    [usuario, datos, cargando],
+    [usuario, datos, cargando, esAdmin],
   )
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>

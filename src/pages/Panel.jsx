@@ -5,12 +5,12 @@ import Cargando from '@/components/ui/Cargando'
 import ComidaPlan from '@/components/dieta/ComidaPlan'
 import { useAuth } from '@/hooks/useAuth'
 import { usePlan } from '@/hooks/usePlan'
-import { entero } from '@/utils/formato'
+import { entero, mensajeErrorPlan } from '@/utils/formato'
 
 /** Pantalla de inicio: lo que toca comer hoy según el plan activo. */
 export default function Panel() {
   const { datos, metas } = useAuth()
-  const { plan, cargando, trabajando, generar } = usePlan()
+  const { plan, cargando, trabajando, error, generar } = usePlan()
 
   const hoy = plan ? plan.dias[indiceDeHoy(plan.dias.length)] : null
 
@@ -78,6 +78,12 @@ export default function Panel() {
               Diseñar mi dieta
             </Boton>
           </div>
+
+          {error && (
+            <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              {mensajeErrorPlan(error)}
+            </p>
+          )}
         </div>
       ) : (
         <>

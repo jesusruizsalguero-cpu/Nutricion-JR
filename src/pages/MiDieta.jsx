@@ -8,7 +8,7 @@ import ListaCompra from '@/components/dieta/ListaCompra'
 import BarrasMacros from '@/components/nutricion/BarrasMacros'
 import { useAuth } from '@/hooks/useAuth'
 import { usePlan } from '@/hooks/usePlan'
-import { entero } from '@/utils/formato'
+import { entero, mensajeErrorPlan } from '@/utils/formato'
 import { OBJETIVOS } from '@/utils/nutricion'
 import { DEPORTES, PATOLOGIAS } from '@/utils/salud'
 
@@ -172,7 +172,7 @@ function SinPlan({ perfil, metas, trabajando, error, onGenerar }) {
 
       {error && (
         <p role="alert" className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-          No se pudo generar el plan. Inténtalo de nuevo.
+          {mensajeErrorPlan(error)}
         </p>
       )}
     </div>

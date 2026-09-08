@@ -1,11 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { LogOut, Salad } from 'lucide-react'
+import { LogOut, Salad, ShieldCheck } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { cerrarSesion } from '@/services/autenticacion'
 import { ENLACES } from '@/components/layout/navegacion'
 
 export default function BarraLateral() {
-  const { datos } = useAuth()
+  const { datos, esAdmin } = useAuth()
 
   return (
     <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-slate-200 bg-white lg:flex">
@@ -34,6 +34,22 @@ export default function BarraLateral() {
             {etiqueta}
           </NavLink>
         ))}
+
+        {esAdmin && (
+          <NavLink
+            to="/admin"
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                isActive
+                  ? 'bg-marca-50 text-marca-700'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              }`
+            }
+          >
+            <ShieldCheck className="size-5" aria-hidden="true" />
+            Administración
+          </NavLink>
+        )}
       </nav>
 
       <div className="border-t border-slate-200 p-3">

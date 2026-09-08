@@ -51,3 +51,22 @@ export function mensajeErrorAuth(codigo) {
   }
   return mensajes[codigo] ?? 'No se ha podido iniciar sesión. Inténtalo de nuevo.'
 }
+
+/**
+ * Traduce los errores de Firestore al generar o guardar la dieta. El código
+ * importa: `permission-denied` casi siempre significa que las reglas de
+ * seguridad del proyecto no están publicadas, no que el usuario haga algo mal.
+ */
+export function mensajeErrorPlan(error) {
+  const mensajes = {
+    'permission-denied':
+      'La base de datos ha rechazado la escritura por permisos. Si la app se acaba de desplegar, falta publicar las reglas de Firestore (firestore.rules).',
+    unavailable: 'No hay conexión con la base de datos. Revisa tu internet e inténtalo de nuevo.',
+    'resource-exhausted': 'Se ha superado la cuota de Firestore del proyecto.',
+    unauthenticated: 'Tu sesión ha caducado. Vuelve a entrar.',
+  }
+  const detalle = mensajes[error?.code]
+  if (detalle) return detalle
+
+  return `No se pudo generar el plan${error?.code ? ` (${error.code})` : ''}. Inténtalo de nuevo.`
+}

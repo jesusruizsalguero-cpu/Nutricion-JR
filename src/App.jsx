@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { configuracionIncompleta } from '@/config/firebase'
 import RutaProtegida from '@/routes/RutaProtegida'
 import RutaPublica from '@/routes/RutaPublica'
+import RutaAdmin from '@/routes/RutaAdmin'
 import AvisoConfiguracion from '@/components/AvisoConfiguracion'
 import Layout from '@/components/layout/Layout'
 
@@ -10,6 +11,7 @@ import Onboarding from '@/pages/Onboarding'
 import Panel from '@/pages/Panel'
 import MiDieta from '@/pages/MiDieta'
 import Perfil from '@/pages/Perfil'
+import Admin from '@/pages/Admin'
 
 export default function App() {
   // Sin claves de Firebase la app no puede hacer nada útil: mejor decirlo claro.
@@ -33,6 +35,11 @@ export default function App() {
           <Route path="/" element={<Panel />} />
           <Route path="/dieta" element={<MiDieta />} />
           <Route path="/perfil" element={<Perfil />} />
+
+          {/* Zona de administración: solo accesible para uids en la whitelist */}
+          <Route element={<RutaAdmin />}>
+            <Route path="/admin" element={<Admin />} />
+          </Route>
         </Route>
       </Route>
 

@@ -12,6 +12,15 @@ service cloud.firestore {
       return autenticado() && request.auth.uid == uid;
     }
 
+    // Whitelist de administradores: el documento admins/{uid} lo crea a mano
+    // el propio administrador desde la consola de Firebase. El cliente nunca
+    // puede escribirlo, así que nadie puede autoconcederse el rol.
+    function esAdmin() {
+      return autenticado()
+             && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+             && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.activo == true;
+    }
+
     function numeroPositivo(valor) {
       return valor is number && valor >= 0;
     }
@@ -41,9 +50,19 @@ service cloud.firestore {
       allow delete: if esDueno(resource.data.creadoPor);
     }
 
+    // ---------- Zona de administración ----------
+    // Solo lectura del propio documento: sirve para que la app sepa si quien
+    // ha iniciado sesión es administrador. La escritura queda cerrada al
+    // cliente a propósito (allow write: if false), así que solo se puede dar
+    // de alta a un admin manualmente desde la consola de Firebase.
+    match /admins/{uid} {
+      allow read: if esDueno(uid);
+      allow write: if false;
+    }
+
     // ---------- Datos privados del usuario ----------
     match /usuarios/{uid} {
-      allow read: if esDueno(uid);
+      allow read: if esDueno(uid) || esAdmin();
       allow create: if esDueno(uid) && request.resource.data.uid == uid;
       allow update: if esDueno(uid) && request.resource.data.uid == resource.data.uid;
       allow delete: if false; // la baja de cuenta se hace desde el backend
