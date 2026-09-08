@@ -82,6 +82,11 @@ service cloud.firestore {
         allow read, write: if esDueno(uid);
       }
 
+      // Conversación con el asistente de IA
+      match /chatIA/{mensajeId} {
+        allow read, write: if esDueno(uid);
+      }
+
       // Mediciones corporales
       match /progreso/{registroId} {
         allow read, write: if esDueno(uid);

@@ -1,0 +1,14 @@
+name = "nutricion-jr-asistente"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+# Id del proyecto de Firebase: se usa para validar que el ID token que llega
+# es de esta app y no de otro proyecto cualquiera.
+[vars]
+FIREBASE_PROJECT = "nutricion-jr"
+
+# Contador de consultas por usuario y día. El id se rellena al crear el
+# namespace (ver README.md de esta carpeta).
+[[kv_namespaces]]
+binding = "CUOTA"
+id = "PENDIENTE_DE_CREAR"
