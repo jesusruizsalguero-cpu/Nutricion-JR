@@ -140,7 +140,7 @@ export default function MiDieta() {
                 icono={Pencil}
                 onClick={() => setEditando((valor) => !valor)}
               >
-                {editando ? 'Terminar' : 'Editar a mano'}
+                {editando ? 'Terminar' : 'Editar'}
               </Boton>
               {!editando && (
                 <Boton

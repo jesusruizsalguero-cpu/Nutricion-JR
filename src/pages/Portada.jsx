@@ -52,7 +52,7 @@ export default function Portada({ onEntrar, onVerFuentes }) {
             className="inline-flex items-center justify-center rounded-xl border border-white/30 px-5 py-3
                        text-sm font-medium text-white transition-colors hover:bg-white/10"
           >
-            De dónde salen los datos
+            Fuentes de datos nutricionales
           </button>
         </nav>
       </main>

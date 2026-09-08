@@ -1,0 +1,396 @@
+{
+  "pechuga-pollo": {
+    "eurosPorKg": 7.3,
+    "mercadonaId": 2787,
+    "mercadonaNombre": "Filetes pechuga de pollo"
+  },
+  "muslo-pollo": {
+    "eurosPorKg": 6.5,
+    "mercadonaId": 2789,
+    "mercadonaNombre": "Contramuslos de pollo deshuesados y sin piel"
+  },
+  "pavo": {
+    "eurosPorKg": 8.75,
+    "mercadonaId": 2794,
+    "mercadonaNombre": "Filetes pechuga de pavo"
+  },
+  "ternera-magra": {
+    "eurosPorKg": 23.5,
+    "mercadonaId": 8934,
+    "mercadonaNombre": "Lomo de vacuno añojo"
+  },
+  "solomillo-cerdo": {
+    "eurosPorKg": 7.8,
+    "mercadonaId": 4570,
+    "mercadonaNombre": "Solomillo de cerdo"
+  },
+  "conejo": {
+    "eurosPorKg": 8.6,
+    "mercadonaId": 2797,
+    "mercadonaNombre": "Conejo entero"
+  },
+  "huevo": {
+    "eurosPorKg": 3.67,
+    "mercadonaId": 30167,
+    "mercadonaNombre": "Huevos"
+  },
+  "claras-huevo": {
+    "eurosPorKg": 2.85,
+    "mercadonaId": 31312,
+    "mercadonaNombre": "Claras de huevo líquidas pasteurizadas"
+  },
+  "atun-natural": {
+    "eurosPorKg": 8.75,
+    "mercadonaId": 18018,
+    "mercadonaNombre": "Atún claro al natural Hacendado"
+  },
+  "salmon": {
+    "eurosPorKg": 23,
+    "mercadonaId": 87204,
+    "mercadonaNombre": "Filete de salmón"
+  },
+  "merluza": {
+    "eurosPorKg": 11.5,
+    "mercadonaId": 82610.1,
+    "mercadonaNombre": "Merluza a rodajas"
+  },
+  "bacalao": {
+    "eurosPorKg": 21.1,
+    "mercadonaId": 87211,
+    "mercadonaNombre": "Bacalao al punto de sal descongelado"
+  },
+  "sardinas": {
+    "eurosPorKg": 5.95,
+    "mercadonaId": 81100.2,
+    "mercadonaNombre": "Sardina limpia sin cabeza"
+  },
+  "gambas": {
+    "eurosPorKg": 13.61,
+    "mercadonaId": 24181,
+    "mercadonaNombre": "Gamba pelada cruda tamaño mediano Hacendado ultracongelada"
+  },
+  "fiambre-pavo": {
+    "eurosPorKg": 9.88,
+    "mercadonaId": 67972,
+    "mercadonaNombre": "Pechuga de pavo Hacendado finas lonchas"
+  },
+  "jamon-serrano": {
+    "eurosPorKg": 16.46,
+    "mercadonaId": 59124,
+    "mercadonaNombre": "Jamón serrano Incarlopsa lonchas"
+  },
+  "tofu": null,
+  "tempeh": null,
+  "seitan": null,
+  "edamame": null,
+  "soja-texturizada": {
+    "eurosPorKg": 13.5,
+    "mercadonaId": 13926,
+    "mercadonaNombre": "Soja texturizada Luengo"
+  },
+  "lentejas": {
+    "eurosPorKg": 1.58,
+    "mercadonaId": 26030,
+    "mercadonaNombre": "Lenteja cocida Hacendado"
+  },
+  "garbanzos": {
+    "eurosPorKg": 1.4,
+    "mercadonaId": 26029,
+    "mercadonaNombre": "Garbanzo cocido Hacendado"
+  },
+  "alubias": {
+    "eurosPorKg": 1.32,
+    "mercadonaId": 26019,
+    "mercadonaNombre": "Alubia cocida blanca Hacendado"
+  },
+  "leche-semi": {
+    "eurosPorKg": 0.84,
+    "mercadonaId": 10381,
+    "mercadonaNombre": "Leche semidesnatada Hacendado"
+  },
+  "leche-sin-lactosa": {
+    "eurosPorKg": 0.94,
+    "mercadonaId": 10721,
+    "mercadonaNombre": "Leche semidesnatada sin lactosa Hacendado"
+  },
+  "yogur-natural": {
+    "eurosPorKg": 1.33,
+    "mercadonaId": 22313,
+    "mercadonaNombre": "Yogur natural Hacendado"
+  },
+  "yogur-griego": {
+    "eurosPorKg": 1.93,
+    "mercadonaId": 20559,
+    "mercadonaNombre": "Yogur griego natural Hacendado"
+  },
+  "queso-batido": {
+    "eurosPorKg": 2.2,
+    "mercadonaId": 51071,
+    "mercadonaNombre": "Queso fresco batido desnatado 0% MG Hacendado"
+  },
+  "requeson": {
+    "eurosPorKg": 5,
+    "mercadonaId": 51012,
+    "mercadonaNombre": "Requesón mezcla Hacendado"
+  },
+  "queso-fresco": {
+    "eurosPorKg": 4.1,
+    "mercadonaId": 52406,
+    "mercadonaNombre": "Queso fresco Burgos natural Hacendado"
+  },
+  "queso-curado": {
+    "eurosPorKg": 20.1,
+    "mercadonaId": 50589,
+    "mercadonaNombre": "Queso curado DOP manchego de oveja Hacendado"
+  },
+  "bebida-soja": {
+    "eurosPorKg": 0.75,
+    "mercadonaId": 29322,
+    "mercadonaNombre": "Bebida de soja 0% azúcar Hacendado"
+  },
+  "yogur-soja": {
+    "eurosPorKg": 3,
+    "mercadonaId": 20200,
+    "mercadonaNombre": "Postre de soja natural Hacendado"
+  },
+  "arroz-blanco": {
+    "eurosPorKg": 1.15,
+    "mercadonaId": 5044,
+    "mercadonaNombre": "Arroz redondo Hacendado"
+  },
+  "arroz-integral": {
+    "eurosPorKg": 1.65,
+    "mercadonaId": 5184,
+    "mercadonaNombre": "Arroz integral largo Hacendado"
+  },
+  "pasta-integral": {
+    "eurosPorKg": 2.3,
+    "mercadonaId": 35777,
+    "mercadonaNombre": "Macarrón rayado integral Hacendado"
+  },
+  "pasta": {
+    "eurosPorKg": 1.15,
+    "mercadonaId": 6250,
+    "mercadonaNombre": "Macarrón Hacendado"
+  },
+  "patata": {
+    "eurosPorKg": 1.55,
+    "mercadonaId": 69166,
+    "mercadonaNombre": "Patatas"
+  },
+  "boniato": {
+    "eurosPorKg": 3.35,
+    "mercadonaId": 69239,
+    "mercadonaNombre": "Batata"
+  },
+  "quinoa": {
+    "eurosPorKg": 5.8,
+    "mercadonaId": 22278,
+    "mercadonaNombre": "Quinoa cocida blanca y roja Sabroz"
+  },
+  "cuscus": {
+    "eurosPorKg": 1.95,
+    "mercadonaId": 9395,
+    "mercadonaNombre": "Cous cous mediano Hacendado"
+  },
+  "avena": {
+    "eurosPorKg": 1.63,
+    "mercadonaId": 86341,
+    "mercadonaNombre": "Copos de avena Brüggen"
+  },
+  "pan-integral": {
+    "eurosPorKg": 4.29,
+    "mercadonaId": "12049.2",
+    "mercadonaNombre": "Pan integral de trigo 100% rebanado"
+  },
+  "pan-sin-gluten": {
+    "eurosPorKg": 5.48,
+    "mercadonaId": 35711,
+    "mercadonaNombre": "Pan de molde sin gluten blanco Hacendado"
+  },
+  "pan-centeno": {
+    "eurosPorKg": 1.88,
+    "mercadonaId": 82302,
+    "mercadonaNombre": "Pan de molde con 55% centeno Hacendado"
+  },
+  "tortitas-maiz": {
+    "eurosPorKg": 9.17,
+    "mercadonaId": 14158,
+    "mercadonaNombre": "Tortitas de maíz Hacendado"
+  },
+  "brocoli": {
+    "eurosPorKg": 3,
+    "mercadonaId": 69580,
+    "mercadonaNombre": "Brócoli"
+  },
+  "espinacas": {
+    "eurosPorKg": 4.33,
+    "mercadonaId": 69730,
+    "mercadonaNombre": "Espinacas cortadas y lavadas"
+  },
+  "calabacin": {
+    "eurosPorKg": 1.9,
+    "mercadonaId": 69338,
+    "mercadonaNombre": "Calabacín verde"
+  },
+  "berenjena": {
+    "eurosPorKg": 2.2,
+    "mercadonaId": 69326,
+    "mercadonaNombre": "Berenjena"
+  },
+  "pimiento": {
+    "eurosPorKg": 2.5,
+    "mercadonaId": 69310,
+    "mercadonaNombre": "Pimiento rojo"
+  },
+  "tomate": {
+    "eurosPorKg": 2,
+    "mercadonaId": 69912,
+    "mercadonaNombre": "Tomate pera"
+  },
+  "lechuga": {
+    "eurosPorKg": 2.1,
+    "mercadonaId": 68130,
+    "mercadonaNombre": "Lechuga Iceberg"
+  },
+  "zanahoria": {
+    "eurosPorKg": 1.2,
+    "mercadonaId": 69586,
+    "mercadonaNombre": "Zanahorias"
+  },
+  "judias-verdes": {
+    "eurosPorKg": 5,
+    "mercadonaId": 69889,
+    "mercadonaNombre": "Judía verde plana"
+  },
+  "coliflor": {
+    "eurosPorKg": 2.5,
+    "mercadonaId": 69220,
+    "mercadonaNombre": "Coliflor"
+  },
+  "champinones": {
+    "eurosPorKg": 5.2,
+    "mercadonaId": 26951,
+    "mercadonaNombre": "Champiñones blancos"
+  },
+  "pepino": {
+    "eurosPorKg": 1.7,
+    "mercadonaId": 69584,
+    "mercadonaNombre": "Pepino"
+  },
+  "esparragos": {
+    "eurosPorKg": 10.8,
+    "mercadonaId": 69656,
+    "mercadonaNombre": "Espárragos verdes finos"
+  },
+  "calabaza": {
+    "eurosPorKg": 3.5,
+    "mercadonaId": 3527,
+    "mercadonaNombre": "Calabaza cacahuete cortada a trozos"
+  },
+  "platano": {
+    "eurosPorKg": 2.3,
+    "mercadonaId": 3819,
+    "mercadonaNombre": "Plátano de Canarias IGP"
+  },
+  "manzana": {
+    "eurosPorKg": 2.4,
+    "mercadonaId": 3028,
+    "mercadonaNombre": "Manzana Golden"
+  },
+  "pera": {
+    "eurosPorKg": 2.75,
+    "mercadonaId": 3119,
+    "mercadonaNombre": "Pera Conferencia"
+  },
+  "naranja": {
+    "eurosPorKg": 2.5,
+    "mercadonaId": 3235,
+    "mercadonaNombre": "Naranja de mesa"
+  },
+  "mandarina": {
+    "eurosPorKg": 2.65,
+    "mercadonaId": 3238,
+    "mercadonaNombre": "Mandarina"
+  },
+  "fresas": {
+    "eurosPorKg": 7.5,
+    "mercadonaId": 3723,
+    "mercadonaNombre": "Fresas"
+  },
+  "arandanos": {
+    "eurosPorKg": 13,
+    "mercadonaId": 5507,
+    "mercadonaNombre": "Arándanos"
+  },
+  "kiwi": {
+    "eurosPorKg": 4.65,
+    "mercadonaId": 3820,
+    "mercadonaNombre": "Kiwi verde"
+  },
+  "pina": {
+    "eurosPorKg": 2,
+    "mercadonaId": 3076,
+    "mercadonaNombre": "Piña"
+  },
+  "melon": {
+    "eurosPorKg": 0.7,
+    "mercadonaId": 3506,
+    "mercadonaNombre": "Melón piel de sapo"
+  },
+  "uvas": {
+    "eurosPorKg": 2.75,
+    "mercadonaId": 3313,
+    "mercadonaNombre": "Uva blanca sin semillas"
+  },
+  "aceite-oliva": {
+    "eurosPorKg": 4.27,
+    "mercadonaId": 4717,
+    "mercadonaNombre": "Aceite de oliva virgen extra Hacendado"
+  },
+  "aguacate": {
+    "eurosPorKg": 5,
+    "mercadonaId": 3830,
+    "mercadonaNombre": "Aguacate"
+  },
+  "aceitunas": {
+    "eurosPorKg": 3.35,
+    "mercadonaId": 33053,
+    "mercadonaNombre": "Aceitunas verdes sin hueso Hacendado"
+  },
+  "nueces": {
+    "eurosPorKg": 6.17,
+    "mercadonaId": 34606,
+    "mercadonaNombre": "Nuez natural Hacendado"
+  },
+  "almendras": {
+    "eurosPorKg": 11.5,
+    "mercadonaId": 34865,
+    "mercadonaNombre": "Almendra natural Hacendado"
+  },
+  "pistachos": {
+    "eurosPorKg": 13.6,
+    "mercadonaId": 86202,
+    "mercadonaNombre": "Pistacho tostado Hacendado con sal"
+  },
+  "crema-cacahuete": {
+    "eurosPorKg": 5.3,
+    "mercadonaId": 16883,
+    "mercadonaNombre": "Crema de cacahuete 100% Hacendado"
+  },
+  "semillas-chia": {
+    "eurosPorKg": 9.67,
+    "mercadonaId": 5464,
+    "mercadonaNombre": "Semillas de chía Hacendado"
+  },
+  "semillas-calabaza": {
+    "eurosPorKg": 11.33,
+    "mercadonaId": 34188,
+    "mercadonaNombre": "Pipas de calabaza natural Hacendado peladas"
+  },
+  "chocolate-negro": {
+    "eurosPorKg": 17.5,
+    "mercadonaId": 60722,
+    "mercadonaNombre": "Chocolate negro 85% cacao Hacendado"
+  }
+}
