@@ -29,7 +29,12 @@ export class ErrorEdicion extends Error {}
 // ------------------------------------------------------------------ Acciones
 
 /** Cambia un alimento de una comida por otro y recoloca los gramos. */
-export function sustituirAlimento(plan, perfil, { dia, comida, quitar, poner }) {
+export function sustituirAlimento(
+  plan,
+  perfil,
+  { dia, comida, quitar, poner, datos_nuevo: datosNuevo },
+  propios = [],
+) {
   const indiceDia = resolverDia(plan, dia)
   const diaActual = plan.dias[indiceDia]
   const indiceComida = resolverComida(diaActual, comida)
@@ -37,7 +42,24 @@ export function sustituirAlimento(plan, perfil, { dia, comida, quitar, poner }) 
 
   const indiceAlimento = resolverAlimentoEnComida(comidaActual, quitar)
   const anterior = comidaActual.alimentos[indiceAlimento]
-  const nuevo = resolverAlimentoDelCatalogo(poner, perfil)
+
+  // Si el alimento nuevo no está en la lista pero el asistente ha traído sus
+  // valores, se da de alta sobre la marcha: así "cámbiame el yogur por kéfir"
+  // se resuelve en un solo paso, sin dejar al usuario a medias.
+  const nuevo = existe(poner, propios)
+    ? resolverAlimentoDelCatalogo(poner, perfil, propios, anterior.rol)
+    : datosNuevo
+      ? comprobarApto(prepararAlimentoNuevo({ nombre: poner, ...datosNuevo }), perfil, propios)
+      : resolverAlimentoDelCatalogo(poner, perfil, propios, anterior.rol)
+
+  // Cambiar algo por sí mismo no es un cambio. Pasa cuando el usuario dice
+  // "ponme otra cosa" y el modelo repite el alimento que ya estaba.
+  if (nuevo.id === anterior.id) {
+    throw new ErrorEdicion(
+      `${anterior.nombre} es justo lo que ya tienes ahí. ` +
+        alternativas(anterior.rol, perfil, propios),
+    )
+  }
 
   if (comidaActual.alimentos.some((a, i) => a.id === nuevo.id && i !== indiceAlimento)) {
     throw new ErrorEdicion(`${nuevo.nombre} ya está en esa comida.`)
@@ -46,7 +68,7 @@ export function sustituirAlimento(plan, perfil, { dia, comida, quitar, poner }) 
   // Los gramos no se copian del alimento anterior: se recalculan para que la
   // comida siga cuadrando con su objetivo de calorías y macros.
   const base = comidaActual.alimentos.map((alimento, i) =>
-    i === indiceAlimento ? nuevo : alimentoDeCatalogo(alimento.id),
+    i === indiceAlimento ? nuevo : alimentoDeCatalogo(alimento.id, propios),
   )
   const gramos = ajustarGramos(base, comidaActual.objetivo)
 
@@ -63,6 +85,8 @@ export function sustituirAlimento(plan, perfil, { dia, comida, quitar, poner }) 
 
   return {
     plan: planNuevo,
+    // Si se ha creado al vuelo, el hook lo guardará en la lista del usuario.
+    alimentoCreado: nuevo.propio && !existe(nuevo.id, propios) ? nuevo : null,
     descripcion:
       `Hecho. En ${etiquetaComida(comidaActual)} del ${diaActual.nombre.toLowerCase()} he cambiado ` +
       `${anterior.nombre} (${anterior.gramos} g) por ${nuevo.nombre} (${comidaFinal.alimentos[indiceAlimento].gramos} g). ` +
@@ -70,8 +94,29 @@ export function sustituirAlimento(plan, perfil, { dia, comida, quitar, poner }) 
   }
 }
 
+/** ¿Está ese alimento en la lista, ya sea de la app o del usuario? */
+function existe(referencia, propios = []) {
+  if (!referencia) return false
+  const texto = clave(referencia)
+  return [...propios, ...ALIMENTOS].some(
+    (alimento) =>
+      alimento.id === referencia || clave(alimento.id) === texto || clave(alimento.nombre) === texto,
+  )
+}
+
+/** Un alimento creado al vuelo pasa por el mismo filtro de salud que el resto. */
+function comprobarApto(alimento, perfil, propios) {
+  if (!construirFiltro(perfil)(alimento)) {
+    throw new ErrorEdicion(
+      `${alimento.nombre} no encaja con lo que tienes declarado (${motivosDelPerfil(perfil)}), así que no te lo pongo. ` +
+        alternativas(alimento.rol, perfil, propios),
+    )
+  }
+  return alimento
+}
+
 /** Fija los gramos de un alimento concreto, sin tocar el resto de la comida. */
-export function ajustarCantidad(plan, perfil, { dia, comida, alimento, gramos }) {
+export function ajustarCantidad(plan, perfil, { dia, comida, alimento, gramos }, propios = []) {
   const cantidad = Math.round(Number(gramos))
   if (!Number.isFinite(cantidad) || cantidad <= 0 || cantidad > 2000) {
     throw new ErrorEdicion('Esa cantidad no tiene sentido. Dime unos gramos entre 1 y 2000.')
@@ -86,7 +131,7 @@ export function ajustarCantidad(plan, perfil, { dia, comida, alimento, gramos })
 
   const alimentos = comidaActual.alimentos.map((item, i) =>
     i === indiceAlimento
-      ? { ...item, gramos: cantidad, ...escalarPorcion(alimentoDeCatalogo(item.id), cantidad) }
+      ? { ...item, gramos: cantidad, ...escalarPorcion(alimentoDeCatalogo(item.id, propios), cantidad) }
       : item,
   )
 
@@ -102,7 +147,7 @@ export function ajustarCantidad(plan, perfil, { dia, comida, alimento, gramos })
 }
 
 /** Vuelve a montar un día entero desde cero. */
-export function rehacerDia(plan, perfil, { dia }) {
+export function rehacerDia(plan, perfil, { dia }) { // los alimentos propios no entran en la regeneración automática
   const indiceDia = resolverDia(plan, dia)
   const planNuevo = regenerarDia(plan, indiceDia, perfil)
 
@@ -125,7 +170,7 @@ export const ACCIONES = {
  * Aplica una acción del asistente. Se valida aquí y no en el Worker porque el
  * catálogo y las reglas de salud viven en el cliente.
  */
-export function aplicarAccion(plan, perfil, accion) {
+export function aplicarAccion(plan, perfil, accion, propios = []) {
   const operacion = ACCIONES[accion?.nombre]
   if (!operacion) {
     throw new ErrorEdicion('No sé hacer ese cambio todavía.')
@@ -133,7 +178,7 @@ export function aplicarAccion(plan, perfil, accion) {
   if (!plan) {
     throw new ErrorEdicion('Todavía no tienes una dieta que modificar. Créala en "Mi dieta".')
   }
-  return operacion(plan, perfil, accion.argumentos ?? {})
+  return operacion(plan, perfil, accion.argumentos ?? {}, propios)
 }
 
 // --------------------------------------------------------------- Resolutores
@@ -188,17 +233,19 @@ export function resolverComida(dia, referencia) {
 export function resolverAlimentoEnComida(comida, referencia) {
   if (!referencia) throw new ErrorEdicion('Dime qué alimento quieres cambiar.')
 
-  const texto = normalizar(String(referencia))
-  const porId = comida.alimentos.findIndex((alimento) => alimento.id === referencia)
+  const texto = clave(referencia)
+  const porId = comida.alimentos.findIndex(
+    (alimento) => alimento.id === referencia || clave(alimento.id) === texto,
+  )
   if (porId !== -1) return porId
 
   const porNombre = comida.alimentos.findIndex(
-    (alimento) => normalizar(alimento.nombre) === texto || normalizar(alimento.nombre).includes(texto),
+    (alimento) => clave(alimento.nombre) === texto || clave(alimento.nombre).includes(texto),
   )
   if (porNombre !== -1) return porNombre
 
   const disponibles = comida.alimentos.map((a) => a.nombre).join(', ')
-  throw new ErrorEdicion(`En esa comida no hay "${referencia}". Hay: ${disponibles}.`)
+  throw new ErrorEdicion(`Ahí no tienes ${referencia}. Esa comida lleva: ${disponibles}.`)
 }
 
 /**
@@ -206,27 +253,49 @@ export function resolverAlimentoEnComida(comida, referencia) {
  * comerlo. Esta es la validación importante: el modelo no decide si algo es
  * apto para una patología, lo decide el filtro de `salud.js`.
  */
-export function resolverAlimentoDelCatalogo(referencia, perfil) {
+export function resolverAlimentoDelCatalogo(referencia, perfil, propios = [], rolDeseado = null) {
   if (!referencia) throw new ErrorEdicion('Dime por qué alimento lo cambio.')
 
-  const texto = normalizar(String(referencia))
+  const texto = clave(referencia)
+  const todos = [...propios, ...ALIMENTOS]
   const encontrado =
-    ALIMENTOS_POR_ID[referencia] ??
-    ALIMENTOS.find((alimento) => normalizar(alimento.nombre) === texto) ??
-    ALIMENTOS.find((alimento) => normalizar(alimento.nombre).includes(texto))
+    todos.find((alimento) => alimento.id === referencia) ??
+    todos.find((alimento) => clave(alimento.id) === texto) ??
+    todos.find((alimento) => clave(alimento.nombre) === texto) ??
+    todos.find((alimento) => clave(alimento.nombre).includes(texto))
 
+  // Un rechazo sin salida no sirve de nada: se ofrecen alternativas reales y
+  // se recuerda que el alimento se puede dar de alta desde el propio chat.
   if (!encontrado) {
-    throw new ErrorEdicion(`No tengo "${referencia}" en el catálogo de alimentos.`)
+    throw new ErrorEdicion(
+      `No tengo ${referencia} en mi lista de alimentos. Si me dices sus valores por 100 g ` +
+        `(calorías, proteínas, hidratos y grasas) lo añado. ` +
+        alternativas(rolDeseado, perfil, propios),
+    )
   }
 
   const esApto = construirFiltro(perfil)
   if (!esApto(encontrado)) {
     throw new ErrorEdicion(
-      `${encontrado.nombre} no encaja con lo que tienes declarado (${motivosDelPerfil(perfil)}), así que no te lo pongo.`,
+      `${encontrado.nombre} no encaja con lo que tienes declarado (${motivosDelPerfil(perfil)}), así que no te lo pongo. ` +
+        alternativas(rolDeseado ?? encontrado.rol, perfil, propios),
     )
   }
 
   return encontrado
+}
+
+/** Unos cuantos alimentos aptos del mismo tipo, para que la respuesta tenga salida. */
+function alternativas(rol, perfil, propios = [], cuantas = 5) {
+  if (!rol) return ''
+
+  const esApto = construirFiltro(perfil)
+  const opciones = [...propios, ...ALIMENTOS]
+    .filter((alimento) => alimento.rol === rol && esApto(alimento))
+    .slice(0, cuantas)
+    .map((alimento) => alimento.nombre)
+
+  return opciones.length > 0 ? `También puedo poner: ${opciones.join(', ')}.` : ''
 }
 
 /** Catálogo apto para el usuario, en el formato compacto que se envía al modelo. */
@@ -253,10 +322,10 @@ function reemplazarComida(plan, perfil, indiceDia, indiceComida, alimentos) {
   return recalcularPlan({ ...plan, dias }, perfil)
 }
 
-function alimentoDeCatalogo(id) {
-  const alimento = ALIMENTOS_POR_ID[id]
+function alimentoDeCatalogo(id, propios = []) {
+  const alimento = ALIMENTOS_POR_ID[id] ?? propios.find((a) => a.id === id)
   if (!alimento) {
-    throw new ErrorEdicion('Ese plan tiene un alimento que ya no está en el catálogo.')
+    throw new ErrorEdicion('Ese plan tiene un alimento que ya no está en mi lista.')
   }
   return alimento
 }
@@ -280,7 +349,108 @@ function motivosDelPerfil(perfil) {
   return motivos.length > 0 ? motivos.join(', ').toLowerCase() : 'tus restricciones'
 }
 
+/**
+ * Texto comparable. El modelo mezcla nombres ("Kéfir casero") con estilo de
+ * identificador ("kefir-casero"), así que se igualan guiones, guiones bajos y
+ * espacios antes de comparar.
+ */
+function clave(texto) {
+  return normalizar(String(texto))
+    // El modelo a veces copia la línea entera del menú: se le quitan lo que
+    // venga entre paréntesis y la cantidad final ("Yogur (yogur-soja) 250 g").
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\d+([.,]\d+)?\s*(g|gr|gramos|ml)\b/gi, ' ')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 /** El plan empieza en lunes; getDay() devuelve 0 para el domingo. */
 function indiceDeHoy(totalDias) {
   return ((new Date().getDay() + 6) % 7) % totalDias
+}
+
+// -------------------------------------------------- Alimentos nuevos del chat
+
+const ROLES_VALIDOS = ['proteina', 'carbohidrato', 'verdura', 'fruta', 'grasa', 'lacteo']
+
+/** Ración por defecto de un alimento nuevo, según su papel en el plato. */
+const RACION_POR_ROL = {
+  proteina: { min: 80, max: 220, paso: 10 },
+  carbohidrato: { min: 100, max: 320, paso: 20 },
+  verdura: { min: 80, max: 250, paso: 25 },
+  fruta: { min: 80, max: 250, paso: 25 },
+  grasa: { min: 10, max: 40, paso: 5 },
+  lacteo: { min: 100, max: 300, paso: 25 },
+}
+
+const ALERGENOS = ['gluten', 'lactosa', 'huevo', 'pescado', 'marisco', 'frutosSecos', 'soja']
+
+/**
+ * Convierte lo que dicta el asistente en un alimento utilizable.
+ *
+ * Los valores los da un modelo de lenguaje, así que se comprueban: rangos
+ * posibles y, sobre todo, que las calorías cuadren con los macros. Si alguien
+ * dice que algo tiene 50 kcal y 30 g de grasa, está inventando.
+ */
+export function prepararAlimentoNuevo(datos = {}) {
+  const nombre = String(datos.nombre ?? '').trim()
+  if (nombre.length < 2 || nombre.length > 60) {
+    throw new ErrorEdicion('Necesito un nombre razonable para el alimento.')
+  }
+
+  const rol = ROLES_VALIDOS.includes(datos.rol) ? datos.rol : null
+  if (!rol) {
+    throw new ErrorEdicion(`No sé qué tipo de alimento es ${nombre}. Dime si es proteína, carbohidrato, verdura, fruta, grasa o lácteo.`)
+  }
+
+  const kcal = numero(datos.kcal, 'las calorías', 0, 900)
+  const proteinas = numero(datos.proteinas, 'las proteínas', 0, 100)
+  const carbohidratos = numero(datos.carbohidratos, 'los hidratos', 0, 100)
+  const grasas = numero(datos.grasas, 'las grasas', 0, 100)
+
+  // Las calorías tienen que salir de los macros: 4 por gramo de proteína e
+  // hidratos, 9 por gramo de grasa. Se deja holgura por fibra y redondeos.
+  const teoricas = proteinas * 4 + carbohidratos * 4 + grasas * 9
+  const holgura = Math.max(50, teoricas * 0.3)
+  if (Math.abs(kcal - teoricas) > holgura) {
+    throw new ErrorEdicion(
+      `Esos valores de ${nombre} no cuadran: con ${proteinas} g de proteína, ${carbohidratos} g de hidratos y ` +
+        `${grasas} g de grasa saldrían unas ${Math.round(teoricas)} kcal, no ${kcal}. Compruébalos y me los repites.`,
+    )
+  }
+
+  const contiene = Array.isArray(datos.contiene)
+    ? datos.contiene.filter((ingrediente) => ALERGENOS.includes(ingrediente))
+    : []
+
+  return {
+    id: `propio-${normalizar(nombre).replace(/[^a-z0-9]+/g, '-').slice(0, 40)}`,
+    nombre,
+    rol,
+    origen: datos.origen === 'animal' ? 'carne' : 'vegetal',
+    kcal,
+    proteinas,
+    carbohidratos,
+    grasas,
+    saturadas: 0,
+    fibra: numero(datos.fibra ?? 0, 'la fibra', 0, 60),
+    sodio: numero(datos.sodio ?? 0, 'el sodio', 0, 4000),
+    contiene,
+    ig: 'medio',
+    purinas: 'bajo',
+    potasio: 'medio',
+    fodmap: 'bajo',
+    racion: RACION_POR_ROL[rol],
+    momentos: ['desayuno', 'media_manana', 'almuerzo', 'merienda', 'cena'],
+    propio: true,
+  }
+}
+
+function numero(valor, etiqueta, minimo, maximo) {
+  const cifra = Number(valor)
+  if (!Number.isFinite(cifra) || cifra < minimo || cifra > maximo) {
+    throw new ErrorEdicion(`Necesito ${etiqueta} por 100 g, entre ${minimo} y ${maximo}.`)
+  }
+  return Math.round(cifra * 10) / 10
 }

@@ -48,8 +48,8 @@ export function escucharConversacion(uid, alCambiar, alFallar) {
  * app al aplicar un cambio ('accion'). Importa: los mensajes de la app no se le
  * devuelven al modelo como si fueran suyos (ver `useAsistente`).
  */
-export function guardarMensaje(uid, { rol, texto, origen = 'modelo' }) {
-  return addDoc(coleccion(uid), { rol, texto, origen, creadoEn: Date.now() })
+export function guardarMensaje(uid, { rol, texto, origen = 'modelo', exito = null }) {
+  return addDoc(coleccion(uid), { rol, texto, origen, exito, creadoEn: Date.now() })
 }
 
 export async function borrarConversacion(uid) {

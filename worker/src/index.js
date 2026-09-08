@@ -44,8 +44,26 @@ const HERRAMIENTAS = [
             enum: ['desayuno', 'media_manana', 'almuerzo', 'merienda', 'cena'],
             description: 'La comida del día. "almuerzo" es la comida del mediodía.',
           },
-          quitar: { type: 'string', description: 'id del alimento que se quita, tal cual aparece en el menú' },
-          poner: { type: 'string', description: 'id del alimento nuevo, de la lista de alimentos disponibles' },
+          quitar: { type: 'string', description: 'El alimento que se quita, tal cual aparece en el menú' },
+          poner: { type: 'string', description: 'Nombre del alimento nuevo' },
+          datos_nuevo: {
+            type: 'object',
+            description:
+              'Solo si "poner" es un alimento casero, de marca o poco común que probablemente no esté en la lista básica de la app: sus valores por 100 g, para darlo de alta al vuelo.',
+            properties: {
+              rol: { type: 'string', enum: ['proteina', 'carbohidrato', 'verdura', 'fruta', 'grasa', 'lacteo'] },
+              kcal: { type: 'number' },
+              proteinas: { type: 'number' },
+              carbohidratos: { type: 'number' },
+              grasas: { type: 'number' },
+              fibra: { type: 'number' },
+              contiene: {
+                type: 'array',
+                items: { type: 'string', enum: ['gluten', 'lactosa', 'huevo', 'pescado', 'marisco', 'frutosSecos', 'soja'] },
+              },
+            },
+            required: ['rol', 'kcal', 'proteinas', 'carbohidratos', 'grasas'],
+          },
         },
         required: ['dia', 'comida', 'quitar', 'poner'],
       },
@@ -69,6 +87,43 @@ const HERRAMIENTAS = [
           gramos: { type: 'number', description: 'Cantidad nueva en gramos' },
         },
         required: ['dia', 'comida', 'alimento', 'gramos'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'anadir_alimento',
+      description:
+        'Da de alta un alimento que no está en la lista de la app, con sus valores por 100 g. Si el usuario quería cambiarlo por otro del menú, rellena además dia, comida y quitar: así queda añadido Y puesto en el plato de una vez.',
+      parameters: {
+        type: 'object',
+        properties: {
+          nombre: { type: 'string', description: 'Nombre del alimento, por ejemplo "Kéfir"' },
+          dia: { type: 'string', description: 'Si va a sustituir a otro: día ("hoy", "Martes"...)' },
+          comida: {
+            type: 'string',
+            enum: ['desayuno', 'media_manana', 'almuerzo', 'merienda', 'cena'],
+            description: 'Si va a sustituir a otro: en qué comida',
+          },
+          quitar: { type: 'string', description: 'Si va a sustituir a otro: el alimento al que reemplaza' },
+          rol: {
+            type: 'string',
+            enum: ['proteina', 'carbohidrato', 'verdura', 'fruta', 'grasa', 'lacteo'],
+            description: 'Qué papel hace en el plato',
+          },
+          kcal: { type: 'number', description: 'Calorías por 100 g' },
+          proteinas: { type: 'number', description: 'Gramos de proteína por 100 g' },
+          carbohidratos: { type: 'number', description: 'Gramos de hidratos por 100 g' },
+          grasas: { type: 'number', description: 'Gramos de grasa por 100 g' },
+          fibra: { type: 'number', description: 'Gramos de fibra por 100 g (opcional)' },
+          contiene: {
+            type: 'array',
+            items: { type: 'string', enum: ['gluten', 'lactosa', 'huevo', 'pescado', 'marisco', 'frutosSecos', 'soja'] },
+            description: 'Alérgenos que lleva, para respetar las restricciones del usuario',
+          },
+        },
+        required: ['nombre', 'rol', 'kcal', 'proteinas', 'carbohidratos', 'grasas'],
       },
     },
   },
@@ -296,8 +351,8 @@ async function preguntarAlModelo(apiKey, sistema, historial) {
 
   const datos = await respuesta.json()
   const mensaje = datos?.choices?.[0]?.message
-  const texto = limpiarTexto(mensaje?.content ?? '')
   const acciones = leerAcciones(mensaje?.tool_calls)
+  const texto = sinFalsasConfirmaciones(limpiarTexto(mensaje?.content ?? ''), acciones)
 
   // Cuando el modelo llama a una herramienta, suele devolver el texto vacío:
   // el mensaje de confirmación lo redacta el cliente con lo que ha pasado
@@ -324,6 +379,21 @@ function limpiarTexto(contenido) {
     .replace(/\*\*(.+?)\*\*/g, '$1')
     .replace(/__(.+?)__/g, '$1')
     .trim()
+}
+
+/**
+ * Última red contra la mentira más molesta del asistente: decir "ya te lo he
+ * cambiado" sin haber llamado a ninguna herramienta, con lo que la dieta se
+ * queda igual. Se le ha pedido por prompt que no lo haga, pero un modelo
+ * pequeño se despista; si aun así lo afirma, no se le enseña al usuario.
+ */
+const AFIRMA_CAMBIO =
+  /\b(hecho|listo|ya (lo|la|te)|lo he (cambiado|puesto|añadido|ajustado)|he (cambiado|puesto|añadido|ajustado|actualizado)|cambio el|te lo cambio)\b/i
+
+function sinFalsasConfirmaciones(texto, acciones) {
+  if (acciones.length > 0 || !texto || !AFIRMA_CAMBIO.test(texto)) return texto
+
+  return 'No he llegado a cambiar nada. Dime otra vez qué alimento quieres cambiar y en qué comida, y lo hago.'
 }
 
 /** Traduce las llamadas a herramientas del modelo al formato del cliente. */
@@ -368,14 +438,26 @@ function instruccionesDelSistema({ nombre, perfil, metas, menuDeHoy }) {
     'esas frases las redacta la aplicación cuando el cambio se ha aplicado de verdad.',
     'Si no has llamado a una herramienta, no ha cambiado nada. No digas lo contrario.',
     '',
+    'Habla como una persona, no como un programa. NUNCA menciones nombres de',
+    'herramientas, identificadores internos, errores del sistema ni comillas',
+    'invertidas. Nada de "voy a lanzar sustituir_alimento" ni "no encuentro el id".',
+    'Llama a los alimentos por su nombre de siempre: "el yogur de soja", no "yogur-soja".',
+    '',
+    'La app tiene una lista básica de unos 80 alimentos corrientes (pollo, arroz,',
+    'yogur, brócoli...). No la tienes delante, así que ante un alimento casero, de',
+    'marca o poco común (kéfir, seitán ahumado, una barrita concreta) da por hecho',
+    'que NO está. En ese caso usa sustituir_alimento igualmente, rellenando además',
+    'datos_nuevo con sus valores por 100 g: así queda dado de alta y colocado de una',
+    'vez. Usa anadir_alimento solo si te piden guardarlo sin ponerlo en el menú.',
+    'Si te dicen "cámbialo por cualquier otra cosa", elige tú una alternativa que',
+    'pegue con esa comida y hazlo, sin preguntar.',
+    '',
     'Reglas al usar las herramientas:',
-    '- Si el cambio es en el menú de hoy, para "quitar" y "alimento" usa el id que',
-    '  aparece entre paréntesis en ese menú. No inventes ninguno.',
-    '- Si te piden cambiar algo que no está en esa comida de hoy, NO llames a la',
-    '  herramienta: dile qué hay realmente ahí y pregúntale cuál quiere cambiar.',
-    '- Para otro día distinto de hoy no tienes el menú delante: pasa el nombre del',
-    '  alimento tal y como lo diga el usuario, y la app lo buscará.',
-    '- Para "poner" basta el nombre normal del alimento (por ejemplo "pasta integral").',
+    '- En "quitar" y "alimento" pon SOLO el nombre del alimento, tal como aparece en',
+    '  el menú y sin la cantidad: "Yogur de soja", no "Yogur de soja 250 g".',
+    '- Si te piden cambiar algo que no está en esa comida, NO llames a la herramienta:',
+    '  dile qué hay realmente ahí y pregúntale cuál quiere cambiar.',
+    '- En "poner", el nombre normal del alimento: "pasta integral", "kéfir".',
     '',
     'Límites importantes:',
     '- No diagnosticas enfermedades ni ajustas medicación.',
@@ -408,10 +490,17 @@ function instruccionesDelSistema({ nombre, perfil, metas, menuDeHoy }) {
   }
 
   if (menuDeHoy?.comidas?.length) {
-    lineas.push('', `Menú de hoy (${texto(menuDeHoy.nombre)}), ${texto(menuDeHoy.kcal)} kcal:`)
+    lineas.push(
+      '',
+      // Las confirmaciones de los cambios no vuelven al modelo (le enseñaban a
+      // fingirlos), así que su única fuente fiable del estado es este menú.
+      'Este es el menú de hoy AHORA MISMO, ya con los cambios que se hayan hecho',
+      'antes en esta conversación. Míralo siempre antes de decidir qué cambiar.',
+      `Menú de hoy (${texto(menuDeHoy.nombre)}), ${texto(menuDeHoy.kcal)} kcal:`,
+    )
     for (const comida of menuDeHoy.comidas.slice(0, 6)) {
       lineas.push(
-        `- ${recortar(String(comida?.etiqueta ?? ''), 30)} [comida: ${recortar(String(comida?.id ?? ''), 20)}]: ` +
+        `- ${recortar(String(comida?.etiqueta ?? ''), 30)} [${recortar(String(comida?.id ?? ''), 20)}]: ` +
           recortar(String(comida?.alimentos ?? ''), 400),
       )
     }
