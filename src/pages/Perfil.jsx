@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Save } from 'lucide-react'
+import { Check, Download, Save, Share } from 'lucide-react'
 import Boton from '@/components/ui/Boton'
 import {
   PERFIL_VACIO,
@@ -10,6 +10,7 @@ import {
   validarDatos,
 } from '@/components/perfil/SeccionesPerfil'
 import { useAuth } from '@/hooks/useAuth'
+import { useInstalarApp } from '@/hooks/useInstalarApp'
 import { guardarPerfil } from '@/services/usuarios'
 import { calcularIMC, calcularMetas } from '@/utils/nutricion'
 import { entero } from '@/utils/formato'
@@ -100,6 +101,8 @@ export default function Perfil() {
         <SeccionObjetivo perfil={perfil} cambiar={cambiar} />
       </Bloque>
 
+      <SeccionInstalar />
+
       {errores.general && (
         <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {errores.general}
@@ -117,6 +120,63 @@ export default function Perfil() {
         )}
       </div>
     </div>
+  )
+}
+
+/**
+ * Instalar la app sin depender de que cada persona encuentre la opción en el
+ * menú de su navegador — la hemos visto escondida un par de niveles adentro
+ * en Chrome/Edge, y en algún perfil de Edge directamente no aparece aunque la
+ * app cumpla todos los requisitos técnicos.
+ */
+function SeccionInstalar() {
+  const { instalada, instalando, disponible, esIOS, instalar } = useInstalarApp()
+  const [resultado, setResultado] = useState(null)
+
+  async function alInstalar() {
+    const desenlace = await instalar()
+    if (desenlace === 'dismissed') setResultado('cancelado')
+  }
+
+  return (
+    <Bloque titulo="Instalar la app">
+      {instalada ? (
+        <p className="flex items-center gap-2 text-sm text-marca-700">
+          <Check className="size-4 shrink-0" aria-hidden="true" />
+          Ya la tienes instalada en este dispositivo.
+        </p>
+      ) : instalando ? (
+        <p className="text-sm text-slate-500">Instalando…</p>
+      ) : disponible ? (
+        <div className="space-y-3">
+          <p className="text-sm text-slate-600">
+            Instálala para abrirla desde el icono, a pantalla completa y sin la barra del
+            navegador.
+          </p>
+          <Boton icono={Download} onClick={alInstalar}>
+            Instalar aplicación
+          </Boton>
+        </div>
+      ) : resultado === 'cancelado' ? (
+        // El aviso del navegador solo se puede usar una vez: tras cancelar,
+        // `disponible` pasa a false tanto si se acepta como si no. Sin esta
+        // rama, el mensaje caería en el genérico de "tu navegador no lo
+        // ofrece", que sería falso justo después de que sí lo haya ofrecido.
+        <p className="text-sm text-slate-500">
+          Vale, no se ha instalado. Recarga la página más tarde si quieres volver a intentarlo.
+        </p>
+      ) : esIOS ? (
+        <p className="flex items-start gap-2 text-sm text-slate-600">
+          <Share className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          Toca el icono compartir de Safari y elige <strong>«Añadir a pantalla de inicio»</strong>.
+        </p>
+      ) : (
+        <p className="text-sm text-slate-500">
+          Tu navegador todavía no ofrece instalarla desde aquí. En Chrome suele aparecer un icono
+          de instalar en la barra de direcciones; en Edge, en el menú «···» → Aplicaciones.
+        </p>
+      )}
+    </Bloque>
   )
 }
 
