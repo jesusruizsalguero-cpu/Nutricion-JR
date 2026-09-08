@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { usePlan } from '@/hooks/usePlan'
 import * as asistenteService from '@/services/asistente'
 import { actualizarPlan } from '@/services/planes'
-import { aplicarAccion, catalogoPermitido, ErrorEdicion } from '@/utils/edicionPlan'
+import { aplicarAccion, ErrorEdicion } from '@/utils/edicionPlan'
 import { calcularEdad, COMIDAS_POR_ID } from '@/utils/nutricion'
 
 /**
@@ -66,7 +66,6 @@ export function useAsistente() {
         : null,
       metas: metas ?? null,
       menuDeHoy: resumirMenuDeHoy(plan),
-      catalogo: perfil ? catalogoPermitido(perfil) : [],
     }),
     [datos, perfil, metas, plan],
   )
@@ -125,17 +124,31 @@ export function useAsistente() {
 
       try {
         const { respuesta, acciones } = await asistenteService.preguntar(
-          historial.map(({ rol, texto: contenido }) => ({ rol, texto: contenido })),
+          historialParaElModelo(historial),
           contexto,
         )
 
         const confirmacion = acciones.length > 0 ? await aplicarCambios(acciones) : ''
-        const salida = [respuesta, confirmacion].filter(Boolean).join('\n\n')
 
-        await asistenteService.guardarMensaje(uid, {
-          rol: 'asistente',
-          texto: salida || 'No he sabido qué responder. Prueba a decírmelo de otra forma.',
-        })
+        // El texto del modelo y la confirmación de la app se guardan por
+        // separado: así la confirmación queda marcada como 'accion' y no vuelve
+        // al modelo como si la hubiera escrito él.
+        if (respuesta) {
+          await asistenteService.guardarMensaje(uid, { rol: 'asistente', texto: respuesta })
+        }
+        if (confirmacion) {
+          await asistenteService.guardarMensaje(uid, {
+            rol: 'asistente',
+            texto: confirmacion,
+            origen: 'accion',
+          })
+        }
+        if (!respuesta && !confirmacion) {
+          await asistenteService.guardarMensaje(uid, {
+            rol: 'asistente',
+            texto: 'No he sabido qué responder. Prueba a decírmelo de otra forma.',
+          })
+        }
       } catch (e) {
         setError(e.message)
       } finally {
@@ -157,6 +170,21 @@ export function useAsistente() {
   }, [uid])
 
   return { mensajes, cargando, pensando, error, enviar, limpiar, tienePlan: Boolean(plan) }
+}
+
+/**
+ * Historial que se le manda al modelo.
+ *
+ * Se dejan fuera las confirmaciones que redacta la app al aplicar un cambio.
+ * Devolvérselas como turnos suyos le enseñaba el formato ("Hecho. En la cena he
+ * cambiado...") y acababa escribiendo esas frases por su cuenta, sin llamar a
+ * ninguna herramienta y sin que nada cambiara. El estado real de la dieta ya le
+ * llega en el menú del contexto, que va actualizado en cada turno.
+ */
+function historialParaElModelo(mensajes) {
+  return mensajes
+    .filter((mensaje) => mensaje.origen !== 'accion')
+    .map(({ rol, texto }) => ({ rol, texto }))
 }
 
 /** El menú del día en el formato compacto que espera el Worker. */

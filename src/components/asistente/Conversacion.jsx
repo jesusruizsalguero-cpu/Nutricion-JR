@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import Cargando from '@/components/ui/Cargando'
 
@@ -54,18 +54,38 @@ function Burbuja({ mensaje }) {
   )
 }
 
+/**
+ * El modelo tarda entre unos segundos y medio minuto según lo cargado que esté
+ * el servidor. Pasados unos segundos se muestra el tiempo transcurrido: sin eso
+ * la espera parece que se ha colgado.
+ */
 function Escribiendo() {
+  const [segundos, setSegundos] = useState(0)
+
+  useEffect(() => {
+    const desde = Date.now()
+    const reloj = setInterval(() => setSegundos(Math.floor((Date.now() - desde) / 1000)), 1000)
+    return () => clearInterval(reloj)
+  }, [])
+
   return (
     <div className="flex justify-start">
-      <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-sm bg-slate-100 px-4 py-3">
+      <div className="flex items-center gap-2 rounded-2xl rounded-bl-sm bg-slate-100 px-4 py-3">
         <span className="sr-only">El asistente está escribiendo</span>
-        {[0, 150, 300].map((retraso) => (
-          <span
-            key={retraso}
-            className="size-2 animate-bounce rounded-full bg-slate-400"
-            style={{ animationDelay: `${retraso}ms` }}
-          />
-        ))}
+        <span className="flex items-center gap-1.5" aria-hidden="true">
+          {[0, 150, 300].map((retraso) => (
+            <span
+              key={retraso}
+              className="size-2 animate-bounce rounded-full bg-slate-400"
+              style={{ animationDelay: `${retraso}ms` }}
+            />
+          ))}
+        </span>
+        {segundos >= 4 && (
+          <span className="text-xs tabular-nums text-slate-400">
+            {segundos < 20 ? `${segundos} s` : `${segundos} s · a veces tarda`}
+          </span>
+        )}
       </div>
     </div>
   )

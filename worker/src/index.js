@@ -352,18 +352,30 @@ function leerAcciones(toolCalls) {
  * son sus propios datos y solo afectaría a la respuesta que él mismo recibe.
  * Aun así se recorta, para no inflar el prompt.
  */
-function instruccionesDelSistema({ nombre, perfil, metas, menuDeHoy, catalogo }) {
+function instruccionesDelSistema({ nombre, perfil, metas, menuDeHoy }) {
   const lineas = [
     'Eres el asistente de Nutrición JR, una aplicación que diseña dietas personalizadas.',
-    'Respondes en español de España, en segunda persona, con frases cortas y directas.',
-    'Sé concreto: si te piden cantidades, da gramos. Si no sabes algo, dilo.',
-    'Nada de encabezados ni respuestas largas: dos o tres párrafos como mucho.',
+    'Respondes en español de España, breve y directo: dos o tres frases bastan.',
     '',
+    'Háblale SIEMPRE de tú y en segunda persona: "llevas 2.100 kcal", "tu cena tiene".',
+    'Nunca hables en primera persona de lo que come él: "llevo 2.100 kcal" está mal.',
+    'Nada de encabezados, listas largas ni Markdown.',
     '',
     'Puedes modificar la dieta de verdad con las herramientas que tienes.',
     'Cuando el usuario pida un cambio, LLÁMALAS: no digas que lo has cambiado si no las has usado.',
-    'Usa siempre los identificadores (id) que aparecen entre paréntesis, nunca el nombre suelto.',
-    'No anuncies el cambio antes de hacerlo; el resultado se le confirma al usuario automáticamente.',
+    'No anuncies el cambio antes de hacerlo; el resultado se le confirma automáticamente.',
+    'NUNCA escribas confirmaciones tipo "Hecho", "he cambiado" o "he aumentado":',
+    'esas frases las redacta la aplicación cuando el cambio se ha aplicado de verdad.',
+    'Si no has llamado a una herramienta, no ha cambiado nada. No digas lo contrario.',
+    '',
+    'Reglas al usar las herramientas:',
+    '- Si el cambio es en el menú de hoy, para "quitar" y "alimento" usa el id que',
+    '  aparece entre paréntesis en ese menú. No inventes ninguno.',
+    '- Si te piden cambiar algo que no está en esa comida de hoy, NO llames a la',
+    '  herramienta: dile qué hay realmente ahí y pregúntale cuál quiere cambiar.',
+    '- Para otro día distinto de hoy no tienes el menú delante: pasa el nombre del',
+    '  alimento tal y como lo diga el usuario, y la app lo buscará.',
+    '- Para "poner" basta el nombre normal del alimento (por ejemplo "pasta integral").',
     '',
     'Límites importantes:',
     '- No diagnosticas enfermedades ni ajustas medicación.',
@@ -411,14 +423,11 @@ function instruccionesDelSistema({ nombre, perfil, metas, menuDeHoy, catalogo })
     lineas.push('', 'Todavía no tiene una dieta generada; anímale a crearla en "Mi dieta".')
   }
 
-  // Sin esta lista el modelo se inventa alimentos que no existen. Ya viene
-  // filtrada por las patologías y preferencias del usuario.
-  if (Array.isArray(catalogo) && catalogo.length > 0) {
-    lineas.push('', 'Alimentos disponibles para sustituir, ya filtrados para él:')
-    for (const [rol, alimentos] of Object.entries(agruparPorRol(catalogo))) {
-      lineas.push(`- ${rol}: ${alimentos.map((a) => a.id).join(', ')}`)
-    }
-  }
+  // Antes aquí iba el catálogo entero (82 alimentos). Se quitó: alargaba el
+  // prompt hasta el punto de tardar 20 segundos en responder, confundía al
+  // modelo con decenas de identificadores y aun así se inventaba alimentos.
+  // El cliente resuelve el alimento nuevo por su nombre y rechaza lo que no
+  // sea apto, que es donde de verdad se puede validar.
 
   return lineas.join('\n')
 }
@@ -440,17 +449,6 @@ function json(cuerpo, estado, cors) {
     status: estado,
     headers: { 'Content-Type': 'application/json; charset=utf-8', ...cors },
   })
-}
-
-function agruparPorRol(catalogo) {
-  return catalogo.slice(0, 120).reduce((grupos, alimento) => {
-    const rol = String(alimento?.rol ?? 'otros')
-    ;(grupos[rol] ??= []).push({
-      id: recortar(String(alimento?.id ?? ''), 40),
-      nombre: recortar(String(alimento?.nombre ?? ''), 40),
-    })
-    return grupos
-  }, {})
 }
 
 function texto(valor, defecto = 'sin indicar') {

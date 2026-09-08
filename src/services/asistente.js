@@ -43,8 +43,13 @@ export function escucharConversacion(uid, alCambiar, alFallar) {
   )
 }
 
-export function guardarMensaje(uid, { rol, texto }) {
-  return addDoc(coleccion(uid), { rol, texto, creadoEn: Date.now() })
+/**
+ * `origen` distingue lo que escribe el modelo ('modelo') de lo que redacta la
+ * app al aplicar un cambio ('accion'). Importa: los mensajes de la app no se le
+ * devuelven al modelo como si fueran suyos (ver `useAsistente`).
+ */
+export function guardarMensaje(uid, { rol, texto, origen = 'modelo' }) {
+  return addDoc(coleccion(uid), { rol, texto, origen, creadoEn: Date.now() })
 }
 
 export async function borrarConversacion(uid) {
