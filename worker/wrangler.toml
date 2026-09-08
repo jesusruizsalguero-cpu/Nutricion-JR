@@ -11,4 +11,4 @@ FIREBASE_PROJECT = "nutricion-jr"
 # namespace (ver README.md de esta carpeta).
 [[kv_namespaces]]
 binding = "CUOTA"
-id = "PENDIENTE_DE_CREAR"
+id = "7ec42cd958aa4e46ac716d6bc18cb5fc"
