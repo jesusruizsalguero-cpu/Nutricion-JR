@@ -6,7 +6,7 @@
  * Todas las fórmulas usan kg, cm y años.
  */
 
-import { ajustesDe, DEPORTES, kcalDeEntrenamiento } from '@/utils/salud'
+import { ajustesDe, combinarDeportes, kcalDeEntrenamiento } from '@/utils/salud'
 
 export const NIVELES_ACTIVIDAD = {
   sedentario: { etiqueta: 'Sedentario (trabajo sentado, sin ejercicio)', factor: 1.2 },
@@ -140,7 +140,7 @@ export function calcularMetas(perfil) {
     fechaNacimiento,
     nivelActividad,
     objetivo,
-    deporte = 'ninguno',
+    deportes = [],
     sesionesSemana = 0,
     minutosSesion = 0,
     patologias = [],
@@ -151,7 +151,7 @@ export function calcularMetas(perfil) {
   const ajustes = ajustesDe(patologias)
 
   const factor = (NIVELES_ACTIVIDAD[nivelActividad] ?? NIVELES_ACTIVIDAD.sedentario).factor
-  const kcalEntreno = kcalDeEntrenamiento({ deporte, sesionesSemana, minutosSesion, peso })
+  const kcalEntreno = kcalDeEntrenamiento({ deportes, sesionesSemana, minutosSesion, peso })
   const gastoTotal = Math.round(tmb * factor * (1 + (ajustes.factorGasto ?? 0)) + kcalEntreno)
 
   const meta = OBJETIVOS[objetivo] ?? OBJETIVOS.mantener
@@ -167,9 +167,8 @@ export function calcularMetas(perfil) {
   // correspondiente a un IMC de 25 como referencia.
   const pesoReferencia = pesoDeReferencia(peso, altura)
 
-  const deporteDatos = DEPORTES[deporte] ?? DEPORTES.ninguno
-  let proteinaPorKg =
-    meta.proteinaPorKg + (deporteDatos.proteinaExtra ?? 0) + (ajustes.proteinaPorKg ?? 0)
+  const { proteinaExtra } = combinarDeportes(deportes)
+  let proteinaPorKg = meta.proteinaPorKg + proteinaExtra + (ajustes.proteinaPorKg ?? 0)
   if (ajustes.proteinaMaxPorKg !== undefined) {
     proteinaPorKg = Math.min(proteinaPorKg, ajustes.proteinaMaxPorKg)
   }

@@ -476,7 +476,7 @@ function instruccionesDelSistema({ nombre, perfil, metas, menuDeHoy }) {
       'Datos del usuario:',
       `- Sexo: ${texto(perfil.sexo)}. Edad: ${texto(perfil.edad)} años. Altura: ${texto(perfil.altura)} cm. Peso: ${texto(perfil.peso)} kg.`,
       `- Objetivo: ${texto(perfil.objetivo)}. Actividad diaria: ${texto(perfil.nivelActividad)}.`,
-      `- Deporte: ${texto(perfil.deporte, 'ninguno')} (${texto(perfil.sesionesSemana, 0)} sesiones de ${texto(perfil.minutosSesion, 0)} min por semana).`,
+      `- Deportes: ${lista(perfil.deportes)} (${texto(perfil.sesionesSemana, 0)} sesiones de ${texto(perfil.minutosSesion, 0)} min por semana en total).`,
       `- Patologías declaradas: ${lista(perfil.patologias)}.`,
       `- Preferencias y alergias: ${lista(perfil.preferencias)}.`,
     )

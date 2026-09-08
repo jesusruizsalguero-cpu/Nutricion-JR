@@ -68,7 +68,7 @@ export function useAsistente() {
             peso: perfil.peso,
             objetivo: perfil.objetivo,
             nivelActividad: perfil.nivelActividad,
-            deporte: perfil.deporte,
+            deportes: perfil.deportes ?? [],
             sesionesSemana: perfil.sesionesSemana,
             minutosSesion: perfil.minutosSesion,
             patologias: perfil.patologias ?? [],

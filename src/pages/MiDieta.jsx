@@ -144,7 +144,7 @@ export default function MiDieta() {
 }
 
 function SinPlan({ perfil, metas, trabajando, error, onGenerar }) {
-  const deporte = DEPORTES[perfil?.deporte]?.etiqueta
+  const deportes = (perfil?.deportes ?? []).map((d) => DEPORTES[d]?.etiqueta).filter(Boolean)
   const patologias = (perfil?.patologias ?? []).map((p) => PATOLOGIAS[p]?.etiqueta).filter(Boolean)
 
   return (
@@ -157,7 +157,7 @@ function SinPlan({ perfil, metas, trabajando, error, onGenerar }) {
       <p className="mt-2 text-sm text-slate-500">
         Vamos a montarla con tus datos: {entero(metas?.calorias)} kcal al día,{' '}
         {entero(metas?.proteinas)} g de proteína
-        {deporte && perfil?.deporte !== 'ninguno' && `, ${deporte.toLowerCase()}`}
+        {deportes.length > 0 && `, ${deportes.join(' y ').toLowerCase()}`}
         {patologias.length > 0 && ` y ajustes por ${patologias.join(' y ').toLowerCase()}`}.
       </p>
 
@@ -185,7 +185,7 @@ function Avisos({ plan }) {
   const informativos = [
     ...(plan.avisos ?? []).map((a) => ({ texto: a.texto, fuente: a.patologia })),
     ...(plan.alertas ?? []).filter((a) => a.tipo !== 'supervision').map((a) => ({ texto: a.texto })),
-    ...(plan.notaDeporte ? [{ texto: plan.notaDeporte, fuente: 'Entrenamiento' }] : []),
+    ...(plan.notasDeporte ?? []).map((texto) => ({ texto, fuente: 'Entrenamiento' })),
   ]
 
   const escasos = plan.cobertura?.escasos ?? []

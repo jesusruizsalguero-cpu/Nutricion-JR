@@ -16,7 +16,7 @@ export const PERFIL_VACIO = {
   altura: '',
   peso: '',
   nivelActividad: 'ligero',
-  deporte: 'ninguno',
+  deportes: [],
   sesionesSemana: 3,
   minutosSesion: 60,
   objetivo: 'mantener',
@@ -94,7 +94,7 @@ export function SeccionDatos({ perfil, cambiar, errores = {} }) {
 }
 
 export function SeccionActividad({ perfil, cambiar }) {
-  const entrena = perfil.deporte !== 'ninguno'
+  const entrena = perfil.deportes.length > 0
 
   return (
     <div className="space-y-5">
@@ -108,11 +108,12 @@ export function SeccionActividad({ perfil, cambiar }) {
         }))}
       />
 
-      <Selector
-        etiqueta="¿Qué deporte practicas?"
-        value={perfil.deporte}
-        onChange={(e) => cambiar('deporte', e.target.value)}
+      <GrupoCasillas
+        leyenda="¿Qué deportes practicas?"
+        ayuda="Puedes marcar varios. Si no practicas ninguno, no marques nada."
         opciones={Object.entries(DEPORTES).map(([valor, { etiqueta }]) => ({ valor, etiqueta }))}
+        valores={perfil.deportes}
+        onChange={(valores) => cambiar('deportes', valores)}
       />
 
       {entrena && (
@@ -125,6 +126,9 @@ export function SeccionActividad({ perfil, cambiar }) {
             max={14}
             value={perfil.sesionesSemana}
             onChange={(e) => cambiar('sesionesSemana', Number(e.target.value))}
+            ayuda={
+              perfil.deportes.length > 1 ? 'Suma de todos los deportes juntos.' : undefined
+            }
           />
           <Campo
             etiqueta="Duración media"

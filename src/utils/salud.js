@@ -111,15 +111,15 @@ export const PREFERENCIAS = {
 }
 
 /**
- * Deporte practicado. Ajusta el reparto de macros y suma el gasto real de los
- * entrenamientos, que el factor de actividad genérico estima muy por encima.
+ * Deportes practicados (selección múltiple: el usuario puede marcar varios).
+ * Ajustan el reparto de macros y suman el gasto real de los entrenamientos,
+ * que el factor de actividad genérico estima muy por encima.
  *
  *   kcalPorHora   gasto aproximado por hora para una persona de 70 kg
  *   proteinaExtra g/kg que se suman a los de la meta del objetivo
  *   carboPct      reparto de hidratos recomendado sobre el total de calorías
  */
 export const DEPORTES = {
-  ninguno: { etiqueta: 'No practico deporte', kcalPorHora: 0, proteinaExtra: 0, carboPct: null },
   fuerza: {
     etiqueta: 'Fuerza o musculación',
     kcalPorHora: 380,
@@ -196,14 +196,38 @@ export function ajustesDe(patologias = []) {
 }
 
 /**
+ * Reúne los deportes marcados en un único conjunto de cifras, porque las
+ * sesiones y minutos del perfil son un total semanal, no por deporte.
+ *
+ *   kcalPorHora   media de los deportes elegidos (aproximación razonable sin
+ *                 pedir cuánto tiempo dedica a cada uno)
+ *   proteinaExtra el máximo de los elegidos: la necesidad de proteína no se
+ *                 suma por practicar varios deportes a la vez, manda el que más pide
+ *   notas         los avisos de cada deporte, para no perder ninguno
+ */
+export function combinarDeportes(deportes = []) {
+  const validos = deportes.map((id) => DEPORTES[id]).filter(Boolean)
+
+  if (validos.length === 0) {
+    return { kcalPorHora: 0, proteinaExtra: 0, notas: [] }
+  }
+
+  return {
+    kcalPorHora: validos.reduce((suma, d) => suma + d.kcalPorHora, 0) / validos.length,
+    proteinaExtra: Math.max(...validos.map((d) => d.proteinaExtra)),
+    notas: validos.map((d) => d.nota).filter(Boolean),
+  }
+}
+
+/**
  * Gasto extra de los entrenamientos, repartido entre los siete días.
  * Se escala con el peso porque `kcalPorHora` está tabulado para 70 kg.
  */
-export function kcalDeEntrenamiento({ deporte, sesionesSemana = 0, minutosSesion = 0, peso = 70 }) {
-  const datos = DEPORTES[deporte]
-  if (!datos || !datos.kcalPorHora || !sesionesSemana || !minutosSesion) return 0
+export function kcalDeEntrenamiento({ deportes = [], sesionesSemana = 0, minutosSesion = 0, peso = 70 }) {
+  const { kcalPorHora } = combinarDeportes(deportes)
+  if (!kcalPorHora || !sesionesSemana || !minutosSesion) return 0
 
   const horasSemana = (sesionesSemana * minutosSesion) / 60
-  const kcalSemana = datos.kcalPorHora * horasSemana * ((peso || 70) / 70)
+  const kcalSemana = kcalPorHora * horasSemana * ((peso || 70) / 70)
   return Math.round(kcalSemana / 7)
 }

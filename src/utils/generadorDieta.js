@@ -18,7 +18,7 @@
  */
 
 import { ALIMENTOS } from '@/data/alimentos'
-import { construirFiltro, avisosDe, DEPORTES } from '@/utils/salud'
+import { construirFiltro, avisosDe, combinarDeportes } from '@/utils/salud'
 import { escalarPorcion, repartirEnComidas, sumarTotales } from '@/utils/nutricion'
 
 export const DIAS_SEMANA = [
@@ -106,7 +106,7 @@ export function generarPlan({ perfil, metas, numeroComidas = 4, dias = 7, semill
     metas,
     resumen: resumirPerfil(perfil),
     avisos: avisosDe(perfil?.patologias),
-    notaDeporte: DEPORTES[perfil?.deporte]?.nota ?? null,
+    notasDeporte: combinarDeportes(perfil?.deportes).notas,
     cobertura: evaluarCatalogo(porRol),
     dias: diasGenerados,
     listaCompra: construirListaCompra(diasGenerados),
@@ -507,7 +507,7 @@ function evaluarCatalogo(porRol) {
 function resumirPerfil(perfil = {}) {
   return {
     objetivo: perfil.objetivo ?? null,
-    deporte: perfil.deporte ?? 'ninguno',
+    deportes: perfil.deportes ?? [],
     sesionesSemana: perfil.sesionesSemana ?? 0,
     minutosSesion: perfil.minutosSesion ?? 0,
     patologias: perfil.patologias ?? [],

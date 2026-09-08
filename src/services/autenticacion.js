@@ -25,7 +25,7 @@ async function asegurarDocumentoUsuario(usuario) {
       altura: null,
       peso: null,
       nivelActividad: 'ligero',
-      deporte: 'ninguno',
+      deportes: [],
       sesionesSemana: 0,
       minutosSesion: 0,
       objetivo: 'mantener',
