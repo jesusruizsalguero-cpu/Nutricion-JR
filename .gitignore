@@ -47,3 +47,23 @@ pnpm-debug.log*
 # Configuración local de Claude Code
 .claude/
 .datos-fuentes
+
+# Android / Capacitor
+# El proyecto nativo se regenera con `npx cap add android`, pero se versiona
+# para poder compilar en CI sin depender de la máquina local. Lo que nunca
+# entra es lo generado por Gradle y, sobre todo, las claves de firma.
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/res/xml/config.xml
+
+# Claves de firma del APK — filtrarlas permitiría a cualquiera publicar
+# actualizaciones falsas de la app firmadas como si fueran tuyas.
+*.keystore
+*.jks
+android/keystore/
+keystore.properties

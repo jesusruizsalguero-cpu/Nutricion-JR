@@ -1,0 +1,79 @@
+# Compila el APK de release en los runners de GitHub, porque en la máquina
+# de desarrollo (Windows) no hay ni JDK ni Android SDK instalados.
+#
+# Se dispara a mano desde la pestaña Actions, o al publicar un tag "v*".
+# El APK queda como artefacto de la ejecución y, si es un tag, también
+# adjunto a la Release para poder enlazarlo desde la web.
+name: Compilar APK Android
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Compilar la web
+        run: npm run build
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Restaurar el keystore de firma
+        # El keystore se guarda en base64 como secreto del repositorio; nunca
+        # se versiona. Sin él el APK saldría sin firmar y Android no lo
+        # instalaría.
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p android/keystore
+          echo "$KEYSTORE_BASE64" | base64 -d > android/keystore/nutricionjr.keystore
+
+      - name: Sincronizar Capacitor
+        run: npx cap sync android
+
+      - name: Construir el APK firmado
+        run: |
+          npx cap build android \
+            --androidreleasetype APK \
+            --keystorepath keystore/nutricionjr.keystore \
+            --keystorepass "$KEYSTORE_PASSWORD" \
+            --keystorealias "$KEY_ALIAS" \
+            --keystorealiaspass "$KEY_PASSWORD"
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Localizar el APK
+        id: apk
+        run: echo "path=$(find android -name '*-signed.apk' -o -name 'app-release*.apk' | head -1)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nutricion-jr-apk
+          path: ${{ steps.apk.outputs.path }}
+
+      - name: Adjuntar a la Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.apk.outputs.path }}

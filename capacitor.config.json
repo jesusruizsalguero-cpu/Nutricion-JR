@@ -1,0 +1,11 @@
+{
+  "appId": "com.nutricionjr.app",
+  "appName": "Nutrición JR",
+  "webDir": "dist",
+  "android": {
+    "buildOptions": {
+      "keystorePath": "android/keystore/nutricionjr.keystore",
+      "keystoreAlias": "nutricionjr"
+    }
+  }
+}
