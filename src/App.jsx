@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { configuracionIncompleta } from '@/config/firebase'
 import { useAuth } from '@/hooks/useAuth'
 import RutaProtegida from '@/routes/RutaProtegida'
@@ -21,14 +22,51 @@ import Asistente from '@/pages/Asistente'
 import Suplementacion from '@/pages/Suplementacion'
 import Admin from '@/pages/Admin'
 
+/** Marca de que la portada ya se ha visto en esta apertura de la app. */
+const CLAVE_PORTADA = 'portadaVista'
+
 export default function App() {
   const navegar = useNavigate()
+  const ubicacion = useLocation()
   const { autenticado, cargando } = useAuth()
 
-  // Mientras cargamos la sesión, no mostramos nada
-  if (cargando && !configuracionIncompleta) {
-    return <Cargando pantallaCompleta />
+  // La portada se muestra al abrir la app con sesión iniciada, pero no vuelve
+  // a aparecer al navegar dentro. Se recuerda en sessionStorage, que se vacía
+  // al cerrar la pestaña: en la siguiente apertura vuelve a salir.
+  const [portadaPendiente, setPortadaPendiente] = useState(() => {
+    try {
+      return sessionStorage.getItem(CLAVE_PORTADA) !== 'si'
+    } catch {
+      // Navegador con el almacenamiento bloqueado: mejor enseñarla que romper.
+      return true
+    }
+  })
+
+  function cerrarPortada(destino) {
+    try {
+      sessionStorage.setItem(CLAVE_PORTADA, 'si')
+    } catch {
+      // Si no se puede guardar, la portada volverá a salir; no es grave.
+    }
+    if (destino) navegar(destino)
+    setPortadaPendiente(false)
   }
+
+  if (configuracionIncompleta) {
+    return (
+      <>
+        <ActualizacionApp />
+        <AvisoConfiguracion />
+      </>
+    )
+  }
+
+  if (cargando) return <Cargando pantallaCompleta />
+
+  // Sin sesión, la raíz es la landing pública. Solo la raíz: /login y
+  // /fuentes tienen que seguir llegando a sus rutas, o el botón "Entrar"
+  // cambiaría la dirección sin sacar nunca la pantalla de login.
+  const mostrarLanding = !autenticado && ubicacion.pathname === '/'
 
   return (
     <>
@@ -37,47 +75,49 @@ export default function App() {
           incluso en esa pantalla. */}
       <ActualizacionApp />
 
-      {/* Sin claves de Firebase la app no puede hacer nada útil: mejor decirlo claro. */}
-      {configuracionIncompleta ? (
-        <AvisoConfiguracion />
-      ) : !autenticado ? (
-        /* Sin sesión: muestra la landing de inicio */
-        <div className="min-h-screen">
-          <Landing onEntrar={() => navegar('/login')} />
+      {/* La portada se pinta ENCIMA de las rutas, no en su lugar. Si las
+          sustituyera, al cerrarla las rutas se montarían en la dirección
+          anterior y la redirección de RutaProtegida se llevaría por delante
+          el destino pedido. Montadas debajo, la navegación es la última
+          palabra. */}
+      {autenticado && portadaPendiente && (
+        <div className="fixed inset-0 z-50">
+          <Portada onEntrar={() => cerrarPortada()} onVerFuentes={() => cerrarPortada('/fuentes')} />
         </div>
+      )}
+
+      {mostrarLanding ? (
+        <Landing onEntrar={() => navegar('/login')} />
       ) : (
-        /* Con sesión: rutas normales con portada overlay opcional */
-        <>
-          <Routes>
-            {/* La procedencia de los datos se puede consultar sin cuenta. */}
-            <Route path="/fuentes" element={<Fuentes />} />
+        <Routes>
+          {/* La procedencia de los datos se puede consultar sin cuenta. */}
+          <Route path="/fuentes" element={<Fuentes />} />
 
-            <Route element={<RutaPublica />}>
-              <Route path="/login" element={<Login />} />
-            </Route>
+          <Route element={<RutaPublica />}>
+            <Route path="/login" element={<Login />} />
+          </Route>
 
-            {/* Privadas */}
-            <Route element={<RutaProtegida />}>
-              {/* El asistente inicial ocupa la pantalla entera, sin navegación */}
-              <Route path="/bienvenida" element={<Onboarding />} />
+          {/* Privadas */}
+          <Route element={<RutaProtegida />}>
+            {/* El asistente inicial ocupa la pantalla entera, sin navegación */}
+            <Route path="/bienvenida" element={<Onboarding />} />
 
-              <Route element={<Layout />}>
-                <Route path="/" element={<Panel />} />
-                <Route path="/dieta" element={<MiDieta />} />
-                <Route path="/asistente" element={<Asistente />} />
-                <Route path="/suplementacion" element={<Suplementacion />} />
-                <Route path="/perfil" element={<Perfil />} />
+            <Route element={<Layout />}>
+              <Route path="/" element={<Panel />} />
+              <Route path="/dieta" element={<MiDieta />} />
+              <Route path="/asistente" element={<Asistente />} />
+              <Route path="/suplementacion" element={<Suplementacion />} />
+              <Route path="/perfil" element={<Perfil />} />
 
-                {/* Zona de administración: solo accesible para uids en la whitelist */}
-                <Route element={<RutaAdmin />}>
-                  <Route path="/admin" element={<Admin />} />
-                </Route>
+              {/* Zona de administración: solo accesible para uids en la whitelist */}
+              <Route element={<RutaAdmin />}>
+                <Route path="/admin" element={<Admin />} />
               </Route>
             </Route>
+          </Route>
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       )}
     </>
   )
