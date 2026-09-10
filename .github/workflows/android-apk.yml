@@ -56,9 +56,16 @@ jobs:
         # instalaría.
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           mkdir -p android/keystore
-          echo "$KEYSTORE_BASE64" | base64 -d > android/keystore/nutricionjr.keystore
+          # Se limpian saltos de línea y espacios antes de decodificar: al
+          # copiar el base64 desde Windows, el portapapeles añade un retorno
+          # de carro que base64 rechaza como entrada inválida.
+          printf '%s' "$KEYSTORE_BASE64" | tr -d '[:space:]' | base64 -d > android/keystore/nutricionjr.keystore
+          # Comprobar aquí que el keystore es legible evita que un fallo de
+          # copiado aparezca más tarde como un error de firma indescifrable.
+          keytool -list -keystore android/keystore/nutricionjr.keystore -storepass "$KEYSTORE_PASSWORD" > /dev/null
 
       - name: Sincronizar Capacitor
         run: npx cap sync android
