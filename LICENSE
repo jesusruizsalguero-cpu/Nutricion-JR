@@ -1,21 +1,35 @@
-MIT License
+Copyright (c) 2026 Jesús Ruiz Salguero. Todos los derechos reservados.
 
-Copyright (c) 2026 Jesús Ruiz Salguero
+Este código fuente se publica únicamente para su consulta y para permitir la
+distribución de las versiones compiladas de la aplicación. No es software
+libre ni de código abierto.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Queda prohibido, sin autorización previa y por escrito del titular:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+  - copiar, reproducir o redistribuir el código, total o parcialmente;
+  - crear obras derivadas, adaptaciones o traducciones;
+  - usar el código, en todo o en parte, en otros proyectos, sean o no
+    comerciales;
+  - publicar, sublicenciar, vender o ceder el código a terceros.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Se permite únicamente leer el código y descargar las versiones compiladas
+publicadas por el titular para uso personal.
+
+EL SOFTWARE SE PROPORCIONA "TAL CUAL", SIN GARANTÍA DE NINGÚN TIPO, EXPRESA O
+IMPLÍCITA, INCLUIDAS SIN LIMITACIÓN LAS GARANTÍAS DE COMERCIABILIDAD E
+IDONEIDAD PARA UN FIN DETERMINADO. EL TITULAR NO SERÁ RESPONSABLE DE NINGUNA
+RECLAMACIÓN, DAÑO U OTRA RESPONSABILIDAD DERIVADA DEL USO DEL SOFTWARE.
+
+Nutrición JR ofrece información nutricional orientativa y no sustituye el
+consejo de un profesional sanitario.
+
+---
+
+Copyright (c) 2026 Jesús Ruiz Salguero. All rights reserved.
+
+This source code is published for reference only and to allow distribution of
+the compiled application. It is not open source software. No permission is
+granted to copy, modify, redistribute, or reuse this code, in whole or in
+part, without prior written permission from the copyright holder.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
