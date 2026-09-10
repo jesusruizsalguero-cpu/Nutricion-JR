@@ -1,4 +1,11 @@
-import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth'
+import { Capacitor } from '@capacitor/core'
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication'
+import {
+  signInWithPopup,
+  signInWithCredential,
+  GoogleAuthProvider,
+  signOut,
+} from 'firebase/auth'
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { auth, db } from '@/config/firebase'
 
@@ -44,15 +51,50 @@ async function asegurarDocumentoUsuario(usuario) {
 }
 
 /**
+ * En la app empaquetada no vale signInWithPopup: dentro de un WebView no hay
+ * ventanas emergentes, y además Google rechaza por diseño el flujo de OAuth
+ * en navegadores embebidos (error `disallowed_useragent`). El plugin abre el
+ * selector de cuentas nativo de Android y devuelve la credencial.
+ *
+ * Esa credencial hay que pasársela después al SDK web, porque el resto de la
+ * app (Firestore, el listener de sesión) mira `auth` de firebase/auth y no se
+ * entera del login nativo por su cuenta.
+ */
+async function entrarNativo() {
+  const { credential } = await FirebaseAuthentication.signInWithGoogle()
+
+  if (!credential?.idToken) {
+    throw new Error('Google no devolvió el idToken; revisa el google-services.json')
+  }
+
+  const credencialWeb = GoogleAuthProvider.credential(
+    credential.idToken,
+    credential.accessToken,
+  )
+  const { user } = await signInWithCredential(auth, credencialWeb)
+  return user
+}
+
+async function entrarWeb() {
+  const { user } = await signInWithPopup(auth, proveedorGoogle)
+  return user
+}
+
+/**
  * Único punto de entrada a la app. Con Google no hace falta distinguir entre
  * registro e inicio de sesión: la primera vez se crea el documento y ya está.
  */
 export async function iniciarSesionConGoogle() {
-  const { user } = await signInWithPopup(auth, proveedorGoogle)
-  await asegurarDocumentoUsuario(user)
-  return user
+  const usuario = Capacitor.isNativePlatform() ? await entrarNativo() : await entrarWeb()
+  await asegurarDocumentoUsuario(usuario)
+  return usuario
 }
 
-export function cerrarSesion() {
-  return signOut(auth)
+export async function cerrarSesion() {
+  // En nativo hay dos sesiones vivas —la del SDK de Google y la del SDK web—
+  // y cerrar solo una dejaría al usuario dentro al reabrir la app.
+  if (Capacitor.isNativePlatform()) {
+    await FirebaseAuthentication.signOut()
+  }
+  await signOut(auth)
 }

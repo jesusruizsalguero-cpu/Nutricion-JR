@@ -37,6 +37,19 @@ jobs:
 
       - uses: android-actions/setup-android@v3
 
+      - name: Restaurar google-services.json
+        # Sin este archivo Gradle no aplica el plugin de Google Services, la
+        # app compila igual y el login con Google falla en tiempo de ejecución.
+        # Mejor romper aquí que publicar un APK en el que nadie puede entrar.
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "Falta el secreto GOOGLE_SERVICES_JSON" >&2
+            exit 1
+          fi
+          echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+
       - name: Restaurar el keystore de firma
         # El keystore se guarda en base64 como secreto del repositorio; nunca
         # se versiona. Sin él el APK saldría sin firmar y Android no lo

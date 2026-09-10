@@ -67,3 +67,7 @@ android/app/src/main/res/xml/config.xml
 *.jks
 android/keystore/
 keystore.properties
+
+# Configuración de Firebase para Android. Se restaura en CI desde un secreto
+# para no versionar identificadores del proyecto.
+android/app/google-services.json

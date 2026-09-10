@@ -45,9 +45,23 @@ El workflow espera cuatro secretos en el repositorio:
 | `ANDROID_KEY_ALIAS` | `nutricionjr` |
 | `ANDROID_KEY_PASSWORD` | contraseña de la clave (igual que la del almacén) |
 
-## Pendiente antes de distribuir
+## Login con Google
 
-El login usa `signInWithPopup` (`src/services/autenticacion.js`), que no
-funciona dentro de un WebView: Google rechaza OAuth en navegadores
-embebidos. Hace falta `@capacitor-firebase/authentication` con el SDK
-nativo antes de que el APK sea usable.
+`src/services/autenticacion.js` elige el camino según la plataforma: en web
+sigue usando `signInWithPopup`, y en la app empaquetada usa el selector de
+cuentas nativo de Android a través de `@capacitor-firebase/authentication`.
+La credencial que devuelve el plugin se le pasa después al SDK web con
+`signInWithCredential`, porque Firestore y el listener de sesión miran ese
+SDK y no se enteran del login nativo por su cuenta.
+
+Queda por hacer en la consola de Firebase, y sin esto el login nativo falla:
+
+1. Añadir una app Android al proyecto con el paquete `com.nutricionjr.app`.
+2. Registrar la huella SHA-1 de arriba en esa app.
+3. Descargar el `google-services.json` que genera y guardarlo como secreto
+   `GOOGLE_SERVICES_JSON` del repositorio. En local va en
+   `android/app/google-services.json`, que está fuera de git.
+
+El plugin de Gradle solo se aplica si ese archivo existe: sin él la app
+compila igual pero el login revienta en tiempo de ejecución, así que el
+workflow corta la compilación si falta el secreto.
