@@ -1,16 +1,40 @@
-# Compila el APK de release en los runners de GitHub, porque en la máquina
-# de desarrollo (Windows) no hay ni JDK ni Android SDK instalados.
+# Compila y publica el APK de release en los runners de GitHub, porque en la
+# máquina de desarrollo (Windows) no hay ni JDK ni Android SDK instalados.
 #
-# Se dispara a mano desde la pestaña Actions, o al publicar un tag "v*".
-# El APK queda como artefacto de la ejecución y, si es un tag, también
-# adjunto a la Release para poder enlazarlo desde la web.
+# Se dispara solo en cada push a main que toque la app, de modo que el APK que
+# cuelga de la web siempre corresponda a la última versión desplegada. También
+# se puede lanzar a mano desde la pestaña Actions.
+#
+# El resultado se publica como Release, así que siempre hay una URL estable:
+#   https://github.com/jesusruizsalguero-cpu/Nutricion-JR/releases/latest/download/nutricion-jr.apk
 name: Compilar APK Android
 
 on:
   workflow_dispatch:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+    paths:
+      # Cambios que no afectan a la app (documentación, el propio README) no
+      # justifican una versión nueva del APK.
+      - 'src/**'
+      - 'public/**'
+      - 'android/**'
+      - 'index.html'
+      - 'vite.config.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.json'
+      - '.github/workflows/android-apk.yml'
+
+# Un push que llega mientras aún se compila el anterior cancela esa compilación:
+# solo importa el APK del último commit.
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -72,6 +96,14 @@ jobs:
         run: npx cap sync android
 
       - name: Construir el APK firmado
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          # Cada compilación sube el versionCode; sin eso Android rechaza la
+          # instalación encima de una versión anterior.
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 1.0.${{ github.run_number }}
         run: |
           npx cap build android \
             --androidreleasetype APK \
@@ -79,22 +111,50 @@ jobs:
             --keystorepass "$KEYSTORE_PASSWORD" \
             --keystorealias "$KEY_ALIAS" \
             --keystorealiaspass "$KEY_PASSWORD"
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
-      - name: Localizar el APK
+      - name: Preparar el APK con un nombre estable
+        # El enlace de descarga de la web apunta siempre al mismo nombre de
+        # archivo, así que no puede depender del que genere Gradle.
         id: apk
-        run: echo "path=$(find android -name '*-signed.apk' -o -name 'app-release*.apk' | head -1)" >> "$GITHUB_OUTPUT"
+        run: |
+          origen=$(find android -name '*-signed.apk' -o -name 'app-release*.apk' | head -1)
+          if [ -z "$origen" ]; then
+            echo "No se encontró ningún APK compilado" >&2
+            exit 1
+          fi
+          mkdir -p entrega
+          cp "$origen" entrega/nutricion-jr.apk
+          echo "ruta=entrega/nutricion-jr.apk" >> "$GITHUB_OUTPUT"
+          echo "tam=$(du -h entrega/nutricion-jr.apk | cut -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Verificar la firma
+        # Un APK sin firmar, o firmado con otra clave, no se instala encima de
+        # la versión anterior y además rompería el login con Google.
+        run: |
+          huella=$(keytool -printcert -jarfile entrega/nutricion-jr.apk | grep -oE 'SHA1: [0-9A-F:]+' | head -1 | cut -d' ' -f2)
+          esperada="FB:01:08:09:DE:9F:0C:4C:06:F0:AC:2E:AF:64:75:5B:AC:53:50:B0"
+          echo "Huella del APK: $huella"
+          if [ "$huella" != "$esperada" ]; then
+            echo "La firma no coincide con la registrada en Firebase" >&2
+            exit 1
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
           name: nutricion-jr-apk
-          path: ${{ steps.apk.outputs.path }}
+          path: ${{ steps.apk.outputs.ruta }}
 
-      - name: Adjuntar a la Release
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Publicar la Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ steps.apk.outputs.path }}
+          tag_name: v1.0.${{ github.run_number }}
+          name: Nutrición JR 1.0.${{ github.run_number }}
+          body: |
+            APK firmado, generado automáticamente desde `${{ github.sha }}`.
+
+            Descarga directa (siempre la última versión):
+            https://github.com/${{ github.repository }}/releases/latest/download/nutricion-jr.apk
+
+            Tamaño: ${{ steps.apk.outputs.tam }}
+          files: ${{ steps.apk.outputs.ruta }}
+          make_latest: true

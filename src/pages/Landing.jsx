@@ -1,5 +1,13 @@
 import { ArrowRight, Smartphone, Apple, Download, Zap, BarChart3, Users } from 'lucide-react'
 
+/**
+ * `releases/latest` lo resuelve GitHub en cada petición, así que este enlace
+ * sigue apuntando al último APK publicado sin tener que tocar la web cada vez
+ * que se compila uno nuevo.
+ */
+const URL_APK =
+  'https://github.com/jesusruizsalguero-cpu/Nutricion-JR/releases/latest/download/nutricion-jr.apk'
+
 export default function Landing({ onEntrar }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-marca-50">
@@ -153,20 +161,32 @@ export default function Landing({ onEntrar }) {
 
         {/* APK */}
         <section className="mb-20 rounded-2xl bg-gradient-to-br from-marca-50 to-marca-100 border border-marca-200 p-8 sm:p-12">
-          <div className="flex items-start gap-4 mb-4">
+          <div className="flex items-start gap-4">
             <Download className="size-8 text-marca-700 flex-shrink-0 mt-1" />
             <div>
               <h4 className="text-xl font-semibold text-marca-900 mb-2">
-                ¿Prefieres un APK?
+                ¿Prefieres descargar un APK?
               </h4>
               <p className="text-marca-800 mb-4">
-                Si usas Android y prefieres una descarga clásica, disponemos de APK
-                firmado. Es exactamente lo mismo que la PWA instalada, con las mismas
-                actualizaciones automáticas.
+                Para Android hay un APK firmado con la última versión de la app. Al
+                instalarlo, Android avisará de que procede de un origen desconocido:
+                es lo normal fuera de Google Play.
               </p>
-              <p className="text-sm text-marca-700">
-                Está disponible en las <strong>Releases</strong> del repositorio de
-                GitHub. La PWA es más sencilla y no requiere descargas.
+
+              <a
+                href={URL_APK}
+                className="inline-flex items-center gap-2 rounded-xl bg-marca-700 px-6 py-3
+                           text-sm font-semibold text-white hover:bg-marca-800 transition-colors"
+              >
+                <Download className="size-4" />
+                Descargar APK
+              </a>
+
+              <p className="mt-4 text-sm text-marca-700">
+                A diferencia de la versión instalada desde el navegador, el APK no se
+                actualiza solo: cuando haya cambios habrá que volver a descargarlo. Si
+                no tienes una razón concreta para preferirlo, instalar desde el
+                navegador es más cómodo.
               </p>
             </div>
           </div>
